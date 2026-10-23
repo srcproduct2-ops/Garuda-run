@@ -1074,14 +1074,16 @@ async function hashPw(pw) {
   } catch (e) { return "plain:" + pw; }
 }
 function signIn(u) { state.user = u; save(); state.tab = "today"; render(); }
-function authErr(m) { document.getElementById("auErr").textContent = tr(m); }
+function authErr(m) { const e = document.getElementById("auErr"); if (e) e.textContent = tr(m); else alert(tr(m)); }
 function renderAuthMode() {
   const su = state.authMode === "signup";
-  document.getElementById("auTitle").textContent = su ? "สมัครสมาชิก" : "เข้าสู่ระบบ";
-  document.getElementById("auSwitch").textContent = su ? "เข้าสู่ระบบ" : "สมัครสมาชิก";
-  document.getElementById("auNameWrap").hidden = !su;
-  document.getElementById("auForgot").hidden = su;
-  document.getElementById("auErr").textContent = "";
+  const get = id => document.getElementById(id);
+  if (!get("auTitle")) return; // ไม่มีส่วนหน้า login ในหน้านี้ ให้ข้าม
+  get("auTitle").textContent = su ? "สมัครสมาชิก" : "เข้าสู่ระบบ";
+  if (get("auSwitch")) get("auSwitch").textContent = su ? "เข้าสู่ระบบ" : "สมัครสมาชิก";
+  if (get("auNameWrap")) get("auNameWrap").hidden = !su;
+  if (get("auForgot")) get("auForgot").hidden = su;
+  if (get("auErr")) get("auErr").textContent = "";
 }
 ACT.toggleMode = () => { state.authMode = state.authMode === "signup" ? "login" : "signup"; renderAuthMode(); applyLang(document.body); };
 ACT.authSubmit = async () => {
