@@ -334,7 +334,23 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 .whocard button{flex:none}
 </style>
 </head>
-<body>
+<body class="guest">
+<script>
+  // ตัวช่วยวินิจฉัย: ถ้าสคริปต์มีข้อผิดพลาด จะแสดงข้อความบนหน้าจอ
+  window.addEventListener("error", e => {
+    const box = document.createElement("pre");
+    box.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:999;background:#fff3f3;color:#b00020;padding:10px;border-radius:10px;font-size:12px;white-space:pre-wrap;box-shadow:0 4px 16px rgba(0,0,0,.2)";
+    box.textContent = "ข้อผิดพลาด: " + e.message + " (บรรทัด " + e.lineno + ")";
+    document.body.appendChild(box);
+  });
+  window.addEventListener("unhandledrejection", e => {
+    const box = document.createElement("pre");
+    box.style.cssText = "position:fixed;left:8px;right:8px;bottom:120px;z-index:999;background:#fff3f3;color:#b00020;padding:10px;border-radius:10px;font-size:12px;white-space:pre-wrap";
+    box.textContent = "ข้อผิดพลาด (async): " + (e.reason && e.reason.message ? e.reason.message : e.reason);
+    document.body.appendChild(box);
+  });
+</script>
+
 <div id="splash" aria-label="Garuda Runner">
   <div class="sp-mark"><svg class="sp-svg" viewBox="0 0 120 84" aria-hidden="true"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6c4cf0"/><stop offset="1" stop-color="#3d9bff"/></linearGradient></defs><g fill="url(#gg)"><path d="M58 44C46 16 24 6 4 16c14 2 24 8 31 16-9-1-18 2-24 9 13-3 26 1 36 9 6 5 12 8 18 8z"/><path d="M62 44c12-28 34-38 54-28-14 2-24 8-31 16 9-1 18 2 24 9-13-3-26 1-36 9-6 5-12 8-11-6z"/></g><path d="M52 38c0-7 4-13 9-15 3 1 4 4 3 7-1 4-6 9-12 8z" fill="url(#gg)"/><circle cx="62" cy="26" r="7" fill="url(#gg)"/><path d="M68 25l8 3-8 3z" fill="#ff8a5c"/><circle cx="64" cy="25" r="1.6" fill="#fff"/><path d="M48 66c6 4 16 4 24 0" stroke="url(#gg)" stroke-width="4" stroke-linecap="round" fill="none" opacity=".5"/></svg></div>
   <div class="sp-word"><span class="sp-g">Garuda</span> <span class="sp-r">Runner</span></div>
