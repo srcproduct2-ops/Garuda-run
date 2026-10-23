@@ -839,6 +839,9 @@ const EN = {
   "ทั่วไป (ซูม 13–15)":"Standard (zoom 13–15)","ปกติ (ซูม 13–16)":"Normal (zoom 13–16)","ละเอียด (ซูม 13–17)":"Detailed (zoom 13–17)","ลบแผนที่ออฟไลน์พื้นที่นี้?":"Delete this offline area?",
   "ต้องเปิดแอปผ่าน https:// หรือ localhost เพื่อเก็บแผนที่ออฟไลน์":"Open the app via https:// or localhost to store offline maps","ต้องต่ออินเทอร์เน็ตเพื่อดาวน์โหลดแผนที่":"Internet is required to download maps","ดาวน์โหลดแผนที่ครบแล้ว ใช้งานออฟไลน์ได้":"Map downloaded. Ready for offline use",
   "พื้นที่ใหญ่เกินไป ลดรัศมีหรือความละเอียดลง":"Area too large. Reduce radius or detail","ดาวน์โหลด":"Download","ไทล์":"tiles","ประมาณ":"About","ยกเลิก":"Cancel",
+  "เตือนในปฏิทิน":"Calendar reminders","เวลาซ้อม":"Run time","เตือนล่วงหน้า":"Remind me","ตอนเริ่ม":"At start","1 ชั่วโมง":"1 hour","เพิ่มตารางซ้อมลงปฏิทิน":"Add training plan to calendar",
+  "สร้างไฟล์ปฏิทิน (.ics) ของตารางซ้อมตั้งแต่วันนี้เป็นต้นไป แล้วเพิ่มลงปฏิทินของ iPhone ให้เตือนแม้ไม่ได้เปิดแอป":"Create a calendar file (.ics) of your plan from today on, and add it to your iPhone calendar so you get reminders even when the app is closed",
+  "ยังไม่มีแผนซ้อม":"No training plan yet","ไม่มีวันซ้อมที่เหลือในแผน":"No remaining training days in the plan",
   "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
@@ -1005,6 +1008,13 @@ VIEWS.plan = () => {
       <div style="margin-top:10px">${detail}</div>
     </section>
     ${form}
+    <section class="card"><h3>เตือนในปฏิทิน</h3>
+      <p class="muted" style="margin:0 0 10px">สร้างไฟล์ปฏิทิน (.ics) ของตารางซ้อมตั้งแต่วันนี้เป็นต้นไป แล้วเพิ่มลงปฏิทินของ iPhone ให้เตือนแม้ไม่ได้เปิดแอป</p>
+      <div class="grid2"><div class="field"><label for="icsT">เวลาซ้อม</label><select id="icsT">${icsOpts(["05:00","05:30","06:00","06:30","07:00","17:00","17:30","18:00","19:00"], icsPref().t, v => v)}</select></div>
+      <div class="field"><label for="icsA">เตือนล่วงหน้า</label><select id="icsA">${icsOpts(["0","15","30","60"], icsPref().a, v => v === "0" ? "ตอนเริ่ม" : v === "60" ? "1 ชั่วโมง" : v + " นาที")}</select></div></div>
+      <div class="actions"><button data-act="exportIcs">เพิ่มตารางซ้อมลงปฏิทิน</button></div>
+      <p class="muted" style="margin:10px 0 0;font-size:.78rem">กดแล้วเลือก "เพิ่มลงปฏิทิน" ถ้านำเข้าซ้ำ รายการวันเดิมจะถูกอัปเดต ไม่ซ้ำกัน แต่ถ้าสร้างแผนใหม่ ให้ลบรายการเก่าที่ไม่ใช้แล้วในปฏิทินเอง</p>
+    </section>
     <section class="card"><div class="actions" style="margin:0"><button class="ghost" data-act="replan">สร้างแผนใหม่จากข้อมูลล่าสุด (คงวันแข่งเดิม)</button></div></section>`;
 };
 
@@ -1371,8 +1381,59 @@ function trkShowRoute(r) {
 }
 function trkRefreshCtrl() { const c = document.getElementById("trkCtrl"); if (c) { c.innerHTML = trkBtns(); applyLang(c); } document.querySelector('.tabs button[data-tab="track"]').classList.toggle("rec", TRK.st === "run"); }
 
+// ---------- ส่งตารางซ้อมเข้าปฏิทิน (.ics) ----------
+const ICS_KEY = "garuda-ics";
+const icsPref = () => { try { return { t: "06:00", a: "30", ...JSON.parse(localStorage.getItem(ICS_KEY)) }; } catch (e) { return { t: "06:00", a: "30" }; } };
+const icsOpts = (vals, sel, lab) => vals.map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${lab(v)}</option>`).join("");
+const icsEsc = t => String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+function icsFold(line) {
+  const enc = new TextEncoder(); if (enc.encode(line).length <= 74) return line;
+  const out = []; let cur = "", n = 0;
+  for (const ch of line) { const b = enc.encode(ch).length; if (n + b > (out.length ? 73 : 74)) { out.push(cur); cur = ""; n = 0; } cur += ch; n += b; }
+  out.push(cur); return out.join("\r\n ");
+}
+const icsStamp = (d, hh, mm) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(hh)}${pad(mm)}00`;
+function buildIcs(timeStr, alarmMin) {
+  const [hh, mm] = timeStr.split(":").map(Number), p = plan(), today = new Date(); today.setHours(0, 0, 0, 0);
+  const now = new Date(), st = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Garuda Runner//TH", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Garuda Runner"];
+  let n = 0;
+  p.weeks.forEach(wk => {
+    sessionsOf(wk).forEach((x, i) => {
+      if (!(x.km > 0)) return;
+      const date = addDays(weekStartOf(wk.w), i); if (date < today) return;
+      const pace = parsePace(x.pace), dur = Math.max(20, Math.min(420, Math.round(x.km * (pace || 6.5))));
+      const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hh, mm + dur);
+      const desc = [`สัปดาห์ที่ ${wk.w}/${p.W} · ${wk.phase}`, `ระยะ ${r1(x.km)} km`, x.pace ? `เพซ ${x.pace} /km` : "", x.hr ? `โซนหัวใจ ${x.hr}${zoneBpm(x.hr) ? " (" + zoneBpm(x.hr) + ")" : ""}` : ""].filter(Boolean).join("\n");
+      L.push("BEGIN:VEVENT", `UID:garuda-run-${iso(date)}@garuda-runner`, `DTSTAMP:${st}`,
+        `DTSTART:${icsStamp(date, hh, mm)}`, `DTEND:${icsStamp(end, end.getHours(), end.getMinutes()).replace(/^\d{8}/, `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}`)}`,
+        `SUMMARY:${icsEsc("🏃 " + x.label + " " + r1(x.km) + " km")}`, `DESCRIPTION:${icsEsc(desc)}`,
+        "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEsc("ถึงเวลาซ้อม: " + x.label + " " + r1(x.km) + " km")}`, `TRIGGER:-PT${alarmMin}M`, "END:VALARM", "END:VEVENT");
+      n++;
+    });
+  });
+  L.push("END:VCALENDAR");
+  return { text: L.map(icsFold).join("\r\n") + "\r\n", n };
+}
+const exportIcsFn = async () => {
+  if (!plan()) { alert("ยังไม่มีแผนซ้อม"); return; }
+  const t = document.getElementById("icsT").value, a = document.getElementById("icsA").value;
+  try { localStorage.setItem(ICS_KEY, JSON.stringify({ t, a })); } catch (e) {}
+  const { text, n } = buildIcs(t, Number(a));
+  if (!n) { alert("ไม่มีวันซ้อมที่เหลือในแผน"); return; }
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" }), file = new File([blob], "garuda-runner-plan.ics", { type: "text/calendar" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "ตารางซ้อม Garuda Runner" }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const url = URL.createObjectURL(blob), el = document.createElement("a");
+  el.href = url; el.download = "garuda-runner-plan.ics"; document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  alert("สร้างปฏิทิน " + n + " รายการแล้ว ถ้าไม่มีหน้าต่างเพิ่มลงปฏิทินขึ้นมา ให้เปิดไฟล์ garuda-runner-plan.ics ที่ดาวน์โหลดไว้");
+};
+
 // ---------- การกระทำ ----------
 const ACT = {};
+ACT.exportIcs = exportIcsFn;
 ACT.offGps = () => {
   if (!navigator.geolocation || !TRK.map) return;
   navigator.geolocation.getCurrentPosition(p => TRK.map && TRK.map.setView([p.coords.latitude, p.coords.longitude], 14), () => alert("อ่านตำแหน่งไม่ได้ ตรวจสอบสิทธิ์ Location"), { enableHighAccuracy: true, timeout: 10000 });
