@@ -387,7 +387,8 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile }
     from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc }
     from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
@@ -410,12 +411,24 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   // ฟังก์ชันที่แอปหลัก (สคริปต์ปกติ) เรียกใช้
   window.cloudSignIn = () => signInWithPopup(auth, new GoogleAuthProvider());
   window.cloudSignOut = () => signOut(auth);
+  // สมัคร/ล็อกอิน/รีเซ็ตรหัสผ่านด้วยอีเมล (Firebase Authentication)
+  window.cloudEmailSignUp = async (name, email, pw) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) {} }
+    const u = cred.user;
+    window.cloudOnUser && window.cloudOnUser({
+      user: { name: name || u.email, email: u.email, uid: u.uid, provider: "email" }, data: null
+    });
+    return cred;
+  };
+  window.cloudEmailSignIn = (email, pw) => signInWithEmailAndPassword(auth, email, pw);
+  window.cloudResetPassword = email => sendPasswordResetEmail(auth, email);
   window.cloudSave = async (state) => {
     const u = auth.currentUser;
     if (!u) return;
     await setDoc(doc(db, "users", u.uid), {
       profile: state.profile, days: state.days, plan: state.plan,
-      lang: state.lang, updatedAt: Date.now()
+      lang: state.lang, name: u.displayName || null, email: u.email || null, updatedAt: Date.now()
     }, { merge: true });
   };
 
@@ -424,7 +437,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     if (!u) { window.cloudOnUser && window.cloudOnUser(null); return; }
     const snap = await getDoc(doc(db, "users", u.uid));
     window.cloudOnUser && window.cloudOnUser({
-      user: { name: u.displayName || u.email, email: u.email, uid: u.uid, provider: "google" },
+      user: { name: u.displayName || u.email, email: u.email, uid: u.uid, provider: (u.providerData[0] && u.providerData[0].providerId === "password") ? "email" : "google" },
       data: snap.exists() ? snap.data() : null
     });
   });
@@ -1086,21 +1099,43 @@ function renderAuthMode() {
   if (get("auErr")) get("auErr").textContent = "";
 }
 ACT.toggleMode = () => { state.authMode = state.authMode === "signup" ? "login" : "signup"; renderAuthMode(); applyLang(document.body); };
+const AUTH_ERR = {
+  "auth/email-already-in-use": "อีเมลนี้ถูกใช้แล้ว",
+  "auth/invalid-email": "รูปแบบอีเมลไม่ถูกต้อง",
+  "auth/weak-password": "รหัสผ่านอย่างน้อย 6 ตัวอักษร",
+  "auth/invalid-credential": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "auth/wrong-password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "auth/user-not-found": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "auth/too-many-requests": "ลองผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  "auth/network-request-failed": "เชื่อมต่อเครือข่ายไม่ได้ ลองใหม่อีกครั้ง",
+  "auth/operation-not-allowed": "ยังไม่ได้เปิดการสมัครด้วยอีเมลใน Firebase"
+};
 ACT.authSubmit = async () => {
   const email = auEmail.value.trim().toLowerCase(), pw = auPass.value;
   if (!email || !pw) { authErr("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
   if (pw.length < 6) { authErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร"); return; }
-  const h = await hashPw(pw), db = accounts();
-  if (state.authMode === "signup") {
-    if (db[email]) { authErr("อีเมลนี้ถูกใช้แล้ว"); return; }
-    const name = auName.value.trim() || email.split("@")[0];
-    db[email] = { name, hash: h }; saveAccounts(db);
-    signIn({ name, email, provider: "local" });
-  } else {
-    if (!db[email] || db[email].hash !== h) { authErr("อีเมลหรือรหัสผ่านไม่ถูกต้อง"); return; }
-    signIn({ name: db[email].name, email, provider: "local" });
+  if (!window.cloudEmailSignIn) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
+  try {
+    if (state.authMode === "signup") {
+      await window.cloudEmailSignUp(auName.value.trim() || email.split("@")[0], email, pw);
+    } else {
+      await window.cloudEmailSignIn(email, pw);
+    }
+  } catch (e) {
+    authErr(AUTH_ERR[e && e.code] || "ดำเนินการไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 };
+(function () {
+  const f = document.getElementById("auForgot");
+  if (!f) return;
+  f.addEventListener("click", async () => {
+    const email = auEmail.value.trim().toLowerCase();
+    if (!email) { authErr("กรอกอีเมลก่อน แล้วกดลืมรหัสผ่านอีกครั้ง"); return; }
+    if (!window.cloudResetPassword) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
+    try { await window.cloudResetPassword(email); alert(tr("ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว ตรวจสอบกล่องจดหมายของคุณ")); }
+    catch (e) { authErr(AUTH_ERR[e && e.code] || "ส่งอีเมลรีเซ็ตไม่สำเร็จ"); }
+  });
+})();
 function loadGis() {
   return new Promise((res, rej) => {
     if (window.google && google.accounts) return res();
