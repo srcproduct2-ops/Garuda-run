@@ -329,6 +329,8 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 .au-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1d1640;border:1.5px solid var(--border);border-radius:999px;padding:13px 16px;box-shadow:0 2px 8px rgba(20,20,40,.05)}
 .au-google svg{width:20px;height:20px}
 .au-google:hover{background:#fff;box-shadow:0 8px 20px rgba(20,20,40,.1)}
+.au-guest{width:100%;margin-top:10px;background:transparent;color:var(--muted);border:1.5px dashed var(--border);border-radius:999px;padding:12px 16px;font-weight:700;box-shadow:none}
+.au-guest:hover{background:#fff;transform:none;box-shadow:none}
 .au-note{margin:18px 4px 0;font-size:.74rem;color:var(--muted);text-align:center}
 .whocard{display:flex;align-items:center;gap:14px}
 .whoav{width:52px;height:52px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1.2rem;flex:none}
@@ -361,11 +363,10 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 </div>
 <section id="auth" hidden>
   <div class="au-card">
-    <div class="au-top"><span class="au-brand">Garuda Runner</span><button class="au-link" data-act="toggleMode" id="auSwitch">สมัครสมาชิก</button></div>
+    <div class="au-top"><span class="au-brand">Garuda Runner</span><button class="au-link" data-act="toggleMode" id="auSwitch" hidden>เข้าสู่ระบบ</button></div>
     <h2 id="auTitle">เข้าสู่ระบบ</h2>
     <div class="au-err" id="auErr" role="alert"></div>
     <p class="au-hint" id="auHint" hidden></p>
-    <div class="au-in" id="auNameWrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><input id="auName" placeholder="ชื่อที่แสดง" autocomplete="name"></div>
     <div class="au-in" id="auEmailWrap"><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><input id="auEmail" type="email" placeholder="อีเมล" autocomplete="email"></div>
     <div class="au-in" id="auPassWrap"><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auPass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"><button class="au-link" type="button" id="auForgot">ลืมรหัสผ่าน?</button></div>
 
@@ -376,6 +377,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     <div id="auSocial">
     <div class="au-or"><span>หรือ</span></div>
     <button class="au-google" data-act="googleLogin"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7-10.1 7-17.5z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.8-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.8l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.7-4.2-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span>ดำเนินการต่อด้วย Google</span></button>
+    <button class="au-guest" data-act="anonLogin">เข้าใช้แบบผู้เยี่ยมชม (ไม่ต้องสมัคร)</button>
     <p class="au-note">การใช้งานนี้เพื่อการวางแผนการวิ่งเท่านั้น</p>
     </div>
   </div>
@@ -397,8 +399,8 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile,
-    verifyPasswordResetCode, confirmPasswordReset }
+    signInWithEmailAndPassword, sendPasswordResetEmail,
+    verifyPasswordResetCode, confirmPasswordReset, signInAnonymously }
     from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc }
     from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
@@ -421,16 +423,8 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   // ฟังก์ชันที่แอปหลัก (สคริปต์ปกติ) เรียกใช้
   window.cloudSignIn = () => signInWithPopup(auth, new GoogleAuthProvider());
   window.cloudSignOut = () => signOut(auth);
+  window.cloudAnonSignIn = () => signInAnonymously(auth);
   // สมัคร/ล็อกอิน/รีเซ็ตรหัสผ่านด้วยอีเมล (Firebase Authentication)
-  window.cloudEmailSignUp = async (name, email, pw) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, pw);
-    if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) {} }
-    const u = cred.user;
-    window.cloudOnUser && window.cloudOnUser({
-      user: { name: name || u.email, email: u.email, uid: u.uid, provider: "email" }, data: null
-    });
-    return cred;
-  };
   window.cloudEmailSignIn = (email, pw) => signInWithEmailAndPassword(auth, email, pw);
   window.cloudResetPassword = email => sendPasswordResetEmail(auth, email);
   // ตั้งรหัสผ่านใหม่ด้วยรหัสยืนยัน (oobCode) จากอีเมล คืนค่าอีเมลของบัญชี
@@ -453,7 +447,8 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     if (!u) { window.cloudOnUser && window.cloudOnUser(null); return; }
     const snap = await getDoc(doc(db, "users", u.uid));
     window.cloudOnUser && window.cloudOnUser({
-      user: { name: u.displayName || u.email, email: u.email, uid: u.uid, provider: (u.providerData[0] && u.providerData[0].providerId === "password") ? "email" : "google" },
+      user: { name: u.isAnonymous ? "ผู้เยี่ยมชม" : (u.displayName || u.email), email: u.email || null, uid: u.uid,
+        provider: u.isAnonymous ? "anonymous" : ((u.providerData[0] && u.providerData[0].providerId === "password") ? "email" : "google") },
       data: snap.exists() ? snap.data() : null
     });
   });
@@ -1117,17 +1112,16 @@ function renderAuthMode() {
   const get = id => document.getElementById(id);
   if (!get("auTitle")) return; // ไม่มีส่วนหน้า login ในหน้านี้ ให้ข้าม
   const show = (id, v) => { const e = get(id); if (e) e.hidden = !v; };
-  const titles = { login: "เข้าสู่ระบบ", signup: "สมัครสมาชิก", forgot: "ลืมรหัสผ่าน", reset: "ตั้งรหัสผ่านใหม่" };
+  const titles = { login: "เข้าสู่ระบบ", forgot: "ลืมรหัสผ่าน", reset: "ตั้งรหัสผ่านใหม่" };
   get("auTitle").textContent = titles[m] || titles.login;
-  if (get("auSwitch")) get("auSwitch").textContent = m === "login" ? "สมัครสมาชิก" : "เข้าสู่ระบบ";
-  show("auNameWrap", m === "signup");
+  show("auSwitch", m !== "login");
   show("auEmailWrap", m !== "reset");
-  show("auPassWrap", m === "login" || m === "signup");
+  show("auPassWrap", m === "login");
   show("auForgot", m === "login");
   show("auCodeWrap", m === "reset");
   show("auNewWrap", m === "reset");
   show("auNew2Wrap", m === "reset");
-  show("auSocial", m === "login" || m === "signup");
+  show("auSocial", m === "login");
   const h = get("auHint");
   if (h) {
     h.hidden = !(m === "forgot" || m === "reset");
@@ -1138,11 +1132,10 @@ function renderAuthMode() {
   if (get("auErr")) { get("auErr").textContent = ""; get("auErr").className = "au-err"; }
 }
 ACT.toggleMode = () => {
-  state.authMode = state.authMode === "login" ? "signup" : "login";
+  state.authMode = "login";
   renderAuthMode(); applyLang(document.body);
 };
 const AUTH_ERR = {
-  "auth/email-already-in-use": "อีเมลนี้ถูกใช้แล้ว",
   "auth/invalid-email": "รูปแบบอีเมลไม่ถูกต้อง",
   "auth/weak-password": "รหัสผ่านอย่างน้อย 6 ตัวอักษร",
   "auth/invalid-credential": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
@@ -1153,7 +1146,7 @@ const AUTH_ERR = {
   "auth/invalid-action-code": "รหัสยืนยันไม่ถูกต้องหรือถูกใช้ไปแล้ว ขอรหัสใหม่อีกครั้ง",
   "auth/expired-action-code": "รหัสยืนยันหมดอายุ ขอรหัสใหม่อีกครั้ง",
   "auth/missing-email": "กรอกอีเมลก่อน",
-  "auth/operation-not-allowed": "ยังไม่ได้เปิดการสมัครด้วยอีเมลใน Firebase"
+  "auth/operation-not-allowed": "ยังไม่ได้เปิดการเข้าสู่ระบบด้วยอีเมลใน Firebase"
 };
 const extractCode = v => { const m = String(v).match(/oobCode=([^&\s]+)/); return m ? decodeURIComponent(m[1]) : String(v).trim(); };
 async function doForgot() {
@@ -1189,11 +1182,7 @@ ACT.authSubmit = async () => {
   if (pw.length < 6) { authErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร"); return; }
   if (!window.cloudEmailSignIn) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
   try {
-    if (state.authMode === "signup") {
-      await window.cloudEmailSignUp(auName.value.trim() || email.split("@")[0], email, pw);
-    } else {
-      await window.cloudEmailSignIn(email, pw);
-    }
+    await window.cloudEmailSignIn(email, pw);
   } catch (e) {
     authErr(AUTH_ERR[e && e.code] || "ดำเนินการไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
@@ -1359,13 +1348,18 @@ window.cloudOnUser = info => {
   state.user = info.user;
   save(); render();
 };
+ACT.anonLogin = async () => {
+  if (!window.cloudAnonSignIn) { alert(tr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง")); return; }
+  try { await window.cloudAnonSignIn(); }
+  catch (e) { authErr(e && e.code === "auth/operation-not-allowed" ? "ยังไม่ได้เปิด Anonymous ใน Firebase" : "เข้าใช้แบบผู้เยี่ยมชมไม่สำเร็จ"); }
+};
 ACT.googleLogin = async () => {
   if (!window.cloudSignIn) { alert("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
   try { await window.cloudSignIn(); }
   catch (e) { authErr("เข้าสู่ระบบด้วย Google ไม่สำเร็จ"); }
 };
 ACT.logout = async () => {
-  if (!confirm("ออกจากระบบ?")) return;
+  if (!confirm(state.user && state.user.provider === "anonymous" ? "ออกจากระบบ? บัญชีผู้เยี่ยมชมจะเข้าซ้ำไม่ได้ ข้อมูลที่บันทึกไว้จะหายไป" : "ออกจากระบบ?")) return;
   if (window.cloudSignOut) await window.cloudSignOut();
   state.user = null; state.authMode = "login"; save(); render();
 };
