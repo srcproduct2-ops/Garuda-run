@@ -1035,8 +1035,7 @@ function render() {
   const guest = !state.user;
   document.body.classList.toggle("guest", guest);
   const authEl = document.getElementById("auth");
-  authEl.hidden = !guest;
-  authEl.style.display = guest ? "flex" : "none";
+  if (authEl) { authEl.hidden = !guest; authEl.style.display = guest ? "flex" : "none"; }
   if (guest) { renderAuthMode(); applyLang(document.body); return; }
   const h = new Date().getHours();
   document.getElementById("title").textContent = TITLES[state.tab];
