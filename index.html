@@ -396,7 +396,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 <div id="splash" aria-label="Garuda Runner">
   <div class="sp-mark"><svg class="sp-svg" viewBox="0 0 120 84" aria-hidden="true"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6c4cf0"/><stop offset="1" stop-color="#3d9bff"/></linearGradient></defs><g fill="url(#gg)"><path d="M58 44C46 16 24 6 4 16c14 2 24 8 31 16-9-1-18 2-24 9 13-3 26 1 36 9 6 5 12 8 18 8z"/><path d="M62 44c12-28 34-38 54-28-14 2-24 8-31 16 9-1 18 2 24 9-13-3-26 1-36 9-6 5-12 8-11-6z"/></g><path d="M52 38c0-7 4-13 9-15 3 1 4 4 3 7-1 4-6 9-12 8z" fill="url(#gg)"/><circle cx="62" cy="26" r="7" fill="url(#gg)"/><path d="M68 25l8 3-8 3z" fill="#ff8a5c"/><circle cx="64" cy="25" r="1.6" fill="#fff"/><path d="M48 66c6 4 16 4 24 0" stroke="url(#gg)" stroke-width="4" stroke-linecap="round" fill="none" opacity=".5"/></svg></div>
   <div class="sp-word"><span class="sp-g">Garuda</span> <span class="sp-r">Runner</span></div>
-  <p class="sp-tag">Train with a plan</p>
+  <p class="sp-tag">วิ่งอย่างมีแผน · Train with a plan</p>
   <div class="sp-bar"><i></i></div>
 </div>
 <section id="auth" hidden>
@@ -405,13 +405,16 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     <h2 id="auTitle">เข้าสู่ระบบ</h2>
     <div class="au-err" id="auErr" role="alert"></div>
     <p class="au-hint" id="auHint" hidden></p>
-    <div class="au-in" id="auEmailWrap"><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><input id="auEmail" type="email" placeholder="อีเมล" autocomplete="email"></div>
+    <div class="au-in" id="auNameWrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><input id="auName" placeholder="ชื่อที่แสดง (ไม่บังคับ)" autocomplete="name"></div>
+    <div class="au-in" id="auEmailWrap"><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span><input id="auEmail" type="text" placeholder="User ID (หรืออีเมล)" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
     <div class="au-in" id="auPassWrap"><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auPass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"><button class="au-link" type="button" id="auForgot">ลืมรหัสผ่าน?</button></div>
+    <div class="au-in" id="auPass2Wrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auPass2" type="password" placeholder="ยืนยันรหัสผ่าน" autocomplete="new-password"></div>
 
     <div class="au-in" id="auCodeWrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auCode" placeholder="รหัสยืนยันจากอีเมล (หรือวางลิงก์)" autocomplete="one-time-code" autocapitalize="off" spellcheck="false"></div>
     <div class="au-in" id="auNewWrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auNew" type="password" placeholder="รหัสผ่านใหม่" autocomplete="new-password"></div>
     <div class="au-in" id="auNew2Wrap" hidden><span class="au-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><input id="auNew2" type="password" placeholder="ยืนยันรหัสผ่านใหม่" autocomplete="new-password"></div>
     <div class="au-actions"><button class="au-go" data-act="authSubmit" aria-label="ดำเนินการต่อ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    <div id="auRegWrap" class="au-note" style="margin-top:14px"><span>ยังไม่มีบัญชี?</span> <button class="au-link" type="button" data-act="goRegister">สมัครสมาชิก</button></div>
     <div id="auSocial">
     <div class="au-or"><span>หรือ</span></div>
     <button class="au-google" data-act="googleLogin"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7-10.1 7-17.5z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.8-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.8l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.7-4.2-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span>ดำเนินการต่อด้วย Google</span></button>
@@ -438,7 +441,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-    signInWithEmailAndPassword, sendPasswordResetEmail,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
     verifyPasswordResetCode, confirmPasswordReset, signInAnonymously }
     from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc }
@@ -465,6 +468,12 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   window.cloudAnonSignIn = () => signInAnonymously(auth);
   // สมัคร/ล็อกอิน/รีเซ็ตรหัสผ่านด้วยอีเมล (Firebase Authentication)
   window.cloudEmailSignIn = (email, pw) => signInWithEmailAndPassword(auth, email, pw);
+  // สมัครสมาชิกด้วยอีเมล+รหัสผ่าน (Firebase เก็บรหัสผ่านแบบเข้ารหัสเอง แอปไม่เก็บรหัสผ่าน)
+  window.cloudEmailSignUp = async (email, pw, name) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) {} }
+    return cred;
+  };
   window.cloudResetPassword = email => sendPasswordResetEmail(auth, email);
   // ตั้งรหัสผ่านใหม่ด้วยรหัสยืนยัน (oobCode) จากอีเมล คืนค่าอีเมลของบัญชี
   window.cloudConfirmReset = async (code, pw) => {
@@ -486,7 +495,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     if (!u) { window.cloudOnUser && window.cloudOnUser(null); return; }
     const snap = await getDoc(doc(db, "users", u.uid));
     window.cloudOnUser && window.cloudOnUser({
-      user: { name: u.isAnonymous ? "ผู้เยี่ยมชม" : (u.displayName || u.email), email: u.email || null, uid: u.uid,
+      user: { name: u.isAnonymous ? "ผู้เยี่ยมชม" : (u.displayName || (u.email && u.email.endsWith("@garuda-runner.firebaseapp.com") ? u.email.split("@")[0] : u.email)), email: (u.email && u.email.endsWith("@garuda-runner.firebaseapp.com")) ? null : (u.email || null), username: (u.email && u.email.endsWith("@garuda-runner.firebaseapp.com")) ? u.email.split("@")[0] : null, uid: u.uid,
         provider: u.isAnonymous ? "anonymous" : ((u.providerData[0] && u.providerData[0].providerId === "password") ? "email" : "google") },
       data: snap.exists() ? snap.data() : null
     });
@@ -842,6 +851,12 @@ const EN = {
   "เตือนในปฏิทิน":"Calendar reminders","เวลาซ้อม":"Run time","เตือนล่วงหน้า":"Remind me","ตอนเริ่ม":"At start","1 ชั่วโมง":"1 hour","เพิ่มตารางซ้อมลงปฏิทิน":"Add training plan to calendar",
   "สร้างไฟล์ปฏิทิน (.ics) ของตารางซ้อมตั้งแต่วันนี้เป็นต้นไป แล้วเพิ่มลงปฏิทินของ iPhone ให้เตือนแม้ไม่ได้เปิดแอป":"Create a calendar file (.ics) of your plan from today on, and add it to your iPhone calendar so you get reminders even when the app is closed",
   "ยังไม่มีแผนซ้อม":"No training plan yet","ไม่มีวันซ้อมที่เหลือในแผน":"No remaining training days in the plan",
+  "สมัครสมาชิก":"Sign up","ยังไม่มีบัญชี?":"Don't have an account?","ชื่อที่แสดง (ไม่บังคับ)":"Display name (optional)","ยืนยันรหัสผ่าน":"Confirm password",
+  "อีเมลนี้ถูกใช้สมัครแล้ว ลองเข้าสู่ระบบหรือกดลืมรหัสผ่าน":"This email is already registered. Try logging in or reset your password","สมัครสมาชิกไม่สำเร็จ ลองใหม่อีกครั้ง":"Sign-up failed. Please try again",
+  "User ID (หรืออีเมล)":"User ID (or email)","กรุณากรอก User ID และรหัสผ่าน":"Please enter User ID and password","User ID ต้องยาว 3–20 ตัว ใช้ได้เฉพาะ a-z 0-9 . _ -":"User ID must be 3–20 characters: a-z 0-9 . _ - only",
+  "User ID นี้ถูกใช้แล้ว ลองชื่ออื่น":"This User ID is taken. Try another","User ID หรืออีเมลไม่ถูกต้อง":"Invalid User ID or email",
+  "User ID 3–20 ตัว ใช้ a-z 0-9 . _ - ได้ จำรหัสผ่านไว้ให้ดี เพราะกู้คืนทางอีเมลไม่ได้":"User ID: 3–20 characters, a-z 0-9 . _ - allowed. Remember your password, it can't be recovered by email",
+  "บัญชีแบบ User ID ไม่มีอีเมลสำหรับกู้รหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ":"User ID accounts have no email for password recovery. Please contact the admin",
   "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
@@ -1075,7 +1090,7 @@ VIEWS.summary = () => {
 VIEWS.profile = () => {
   const p = P(), pc = paces(), mx = maxHR(), rs = Number(p.restHr) || 0;
   const u = state.user || {};
-  const who = `<section class="card whocard"><div class="whoav">${esc((u.name || "?").charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><b>${esc(u.name || "")}</b><div class="muted">${esc(u.email || "")}</div></div><button class="ghost" data-act="logout">ออกจากระบบ</button></section>`;
+  const who = `<section class="card whocard"><div class="whoav">${esc((u.name || "?").charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><b>${esc(u.name || "")}</b><div class="muted">${esc(u.email || (u.username ? "User ID: " + u.username : ""))}</div></div><button class="ghost" data-act="logout">ออกจากระบบ</button></section>`;
   const zones = mx ? `<div class="table-wrap"><table><thead><tr><th>โซน</th><th>ใช้กับ</th><th>ช่วง bpm</th></tr></thead><tbody>
     ${[["Z1","ฟื้นตัว"],["Z2","วิ่งเบา / วิ่งยาว"],["Z3","Tempo เบา"],["Z4","Tempo / อินเทอร์วัล"],["Z5","อินเทอร์วัลสั้น"]].map(([z, u]) => `<tr><td>${z}</td><td>${u}</td><td>${zoneBpm(z)}</td></tr>`).join("")}
     </tbody></table></div>` : `<p class="muted">กรอกอายุหรือ Max HR เพื่อดูโซนหัวใจ</p>`;
@@ -1540,11 +1555,15 @@ function renderAuthMode() {
   const get = id => document.getElementById(id);
   if (!get("auTitle")) return; // ไม่มีส่วนหน้า login ในหน้านี้ ให้ข้าม
   const show = (id, v) => { const e = get(id); if (e) e.hidden = !v; };
-  const titles = { login: "เข้าสู่ระบบ", forgot: "ลืมรหัสผ่าน", reset: "ตั้งรหัสผ่านใหม่" };
+  const titles = { login: "เข้าสู่ระบบ", register: "สมัครสมาชิก", forgot: "ลืมรหัสผ่าน", reset: "ตั้งรหัสผ่านใหม่" };
   get("auTitle").textContent = titles[m] || titles.login;
   show("auSwitch", m !== "login");
   show("auEmailWrap", m !== "reset");
-  show("auPassWrap", m === "login");
+  show("auPassWrap", m === "login" || m === "register");
+  show("auNameWrap", m === "register");
+  show("auPass2Wrap", m === "register");
+  show("auRegWrap", m === "login");
+  if (get("auPass")) get("auPass").autocomplete = m === "register" ? "new-password" : "current-password";
   show("auForgot", m === "login");
   show("auCodeWrap", m === "reset");
   show("auNewWrap", m === "reset");
@@ -1552,8 +1571,9 @@ function renderAuthMode() {
   show("auSocial", m === "login");
   const h = get("auHint");
   if (h) {
-    h.hidden = !(m === "forgot" || m === "reset");
-    h.textContent = m === "forgot" ? "กรอกอีเมลที่สมัครไว้ เราจะส่งอีเมลยืนยันไปให้"
+    h.hidden = !(m === "forgot" || m === "reset" || m === "register");
+    h.textContent = m === "register" ? "User ID 3–20 ตัว ใช้ a-z 0-9 . _ - ได้ จำรหัสผ่านไว้ให้ดี เพราะกู้คืนทางอีเมลไม่ได้"
+      : m === "forgot" ? "กรอกอีเมลที่สมัครไว้ เราจะส่งอีเมลยืนยันไปให้ (ใช้ได้เฉพาะบัญชีที่สมัครด้วยอีเมล)"
       : "ใส่รหัสยืนยันจากอีเมล (หรือวางลิงก์ทั้งหมดได้) แล้วตั้งรหัสผ่านใหม่";
   }
   if (m === "reset" && state.resetCode && get("auCode") && !get("auCode").value) get("auCode").value = state.resetCode;
@@ -1564,7 +1584,7 @@ ACT.toggleMode = () => {
   renderAuthMode(); applyLang(document.body);
 };
 const AUTH_ERR = {
-  "auth/invalid-email": "รูปแบบอีเมลไม่ถูกต้อง",
+  "auth/invalid-email": "User ID หรืออีเมลไม่ถูกต้อง",
   "auth/weak-password": "รหัสผ่านอย่างน้อย 6 ตัวอักษร",
   "auth/invalid-credential": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
   "auth/wrong-password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
@@ -1574,12 +1594,14 @@ const AUTH_ERR = {
   "auth/invalid-action-code": "รหัสยืนยันไม่ถูกต้องหรือถูกใช้ไปแล้ว ขอรหัสใหม่อีกครั้ง",
   "auth/expired-action-code": "รหัสยืนยันหมดอายุ ขอรหัสใหม่อีกครั้ง",
   "auth/missing-email": "กรอกอีเมลก่อน",
+  "auth/email-already-in-use": "อีเมลนี้ถูกใช้สมัครแล้ว ลองเข้าสู่ระบบหรือกดลืมรหัสผ่าน",
   "auth/operation-not-allowed": "ยังไม่ได้เปิดการเข้าสู่ระบบด้วยอีเมลใน Firebase"
 };
 const extractCode = v => { const m = String(v).match(/oobCode=([^&\s]+)/); return m ? decodeURIComponent(m[1]) : String(v).trim(); };
 async function doForgot() {
   const email = auEmail.value.trim().toLowerCase();
   if (!email) { authErr("กรอกอีเมลก่อน"); return; }
+  if (!email.includes("@")) { authErr("บัญชีแบบ User ID ไม่มีอีเมลสำหรับกู้รหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ"); return; }
   if (!window.cloudResetPassword) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
   try {
     await window.cloudResetPassword(email);
@@ -1602,11 +1624,34 @@ async function doReset() {
     authInfo("เปลี่ยนรหัสผ่านสำเร็จ เข้าสู่ระบบด้วยรหัสใหม่ได้เลย");
   } catch (e) { authErr(AUTH_ERR[e && e.code] || "เปลี่ยนรหัสผ่านไม่สำเร็จ ลองใหม่อีกครั้ง"); }
 }
+ACT.goRegister = () => { state.authMode = "register"; renderAuthMode(); applyLang(document.body); };
+const UID_DOMAIN = "@garuda-runner.firebaseapp.com";
+const UID_RE = /^[a-z0-9._-]{3,20}$/;
+const toAuthEmail = v => { v = String(v).trim().toLowerCase(); return v.includes("@") ? v : v + UID_DOMAIN; };
+async function doRegister() {
+  const uid = auEmail.value.trim().toLowerCase(), pw = auPass.value, pw2 = auPass2.value, name = auName.value.trim();
+  if (!uid || !pw) { authErr("กรุณากรอก User ID และรหัสผ่าน"); return; }
+  if (!UID_RE.test(uid)) { authErr("User ID ต้องยาว 3–20 ตัว ใช้ได้เฉพาะ a-z 0-9 . _ -"); return; }
+  if (pw.length < 6) { authErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร"); return; }
+  if (pw !== pw2) { authErr("รหัสผ่านสองช่องไม่ตรงกัน"); return; }
+  if (!window.cloudEmailSignUp) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
+  const shown = name || uid;
+  state.pendingName = shown;
+  try {
+    await window.cloudEmailSignUp(uid + UID_DOMAIN, pw, shown);
+    auPass.value = auPass2.value = "";
+    if (state.user) { state.user.name = shown; save(); render(); }
+  } catch (e) {
+    state.pendingName = null;
+    authErr(e && e.code === "auth/email-already-in-use" ? "User ID นี้ถูกใช้แล้ว ลองชื่ออื่น" : (AUTH_ERR[e && e.code] || "สมัครสมาชิกไม่สำเร็จ ลองใหม่อีกครั้ง"));
+  }
+}
 ACT.authSubmit = async () => {
+  if (state.authMode === "register") return doRegister();
   if (state.authMode === "forgot") return doForgot();
   if (state.authMode === "reset") return doReset();
-  const email = auEmail.value.trim().toLowerCase(), pw = auPass.value;
-  if (!email || !pw) { authErr("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
+  const raw = auEmail.value.trim().toLowerCase(), email = toAuthEmail(raw), pw = auPass.value;
+  if (!raw || !pw) { authErr("กรุณากรอก User ID และรหัสผ่าน"); return; }
   if (pw.length < 6) { authErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร"); return; }
   if (!window.cloudEmailSignIn) { authErr("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
   try {
@@ -1998,6 +2043,8 @@ window.cloudOnUser = info => {
       lang: info.data.lang || state.lang };
   }
   state.user = info.user;
+  if (state.pendingName && info.user.provider === "email" && (!info.user.name || info.user.name === info.user.email || info.user.name === info.user.username)) state.user.name = state.pendingName;
+  state.pendingName = null;
   save(); render();
 };
 ACT.anonLogin = async () => {
