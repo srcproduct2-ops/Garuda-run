@@ -1266,27 +1266,199 @@ ACT.saveProfile = () => {
   save(); render(); alert("บันทึกโปรไฟล์แล้ว แผนที่สร้างไว้จะแสดงคำเตือนจนกว่าจะสร้างแผนใหม่");
 };
 
-// ---------- อ่านข้อมูลจากรูป ----------
+// ---------- อ่านข้อมูลจากรูป (OCR ในเบราว์เซอร์ ด้วย Tesseract.js) ----------
+// ใช้ "eng+tha" ถ้าแอปวิ่งตั้งเป็นภาษาไทย (ต้องดาวน์โหลดข้อมูลภาษาเพิ่ม และช้าลงเล็กน้อย)
+const OCR_LANG = "eng";
+const TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let ocrWorkerP = null, ocrProgress = null;
+
+function loadTesseract() {
+  return new Promise((res, rej) => {
+    if (window.Tesseract) return res(window.Tesseract);
+    const sc = document.createElement("script");
+    sc.src = TESS_SRC; sc.onload = () => res(window.Tesseract); sc.onerror = () => rej(new Error("load"));
+    document.head.appendChild(sc);
+  });
+}
+function getOcrWorker() {
+  if (!ocrWorkerP) {
+    ocrWorkerP = (async () => {
+      const T = await loadTesseract();
+      return T.createWorker(OCR_LANG, 1, {
+        logger: m => { if (ocrProgress && m.status === "recognizing text") ocrProgress(m.progress); }
+      });
+    })();
+    ocrWorkerP.catch(() => { ocrWorkerP = null; });
+  }
+  return ocrWorkerP;
+}
+
+// เตรียมรูป: ขยายถ้าเล็ก เปลี่ยนเป็นขาวดำ ดึงคอนทราสต์ และกลับสีถ้าเป็นโหมดมืด
+async function prepImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const k = W < 1400 ? 1400 / W : (W > 2200 ? 2200 / W : 1);
+    const cw = Math.round(W * k), ch = Math.round(H * k);
+    const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0, cw, ch);
+    const d = g.getImageData(0, 0, cw, ch), px = d.data, n = cw * ch;
+    const gray = new Uint8ClampedArray(n), hist = new Uint32Array(256);
+    let sum = 0;
+    for (let i = 0, j = 0; j < n; i += 4, j++) {
+      const v = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114;
+      gray[j] = v; hist[gray[j]]++; sum += gray[j];
+    }
+    const dark = sum / n < 128;
+    let acc = 0, lo = 0, hi = 255;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= n * 0.02) { lo = v; break; } }
+    acc = 0;
+    for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= n * 0.02) { hi = v; break; } }
+    const span = Math.max(1, hi - lo);
+    for (let i = 0, j = 0; j < n; i += 4, j++) {
+      let v = Math.max(0, Math.min(255, (gray[j] - lo) * 255 / span));
+      if (dark) v = 255 - v;
+      px[i] = px[i + 1] = px[i + 2] = v; px[i + 3] = 255;
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// แปลงข้อความที่ OCR อ่านได้ เป็นค่าวิ่ง/นอน (ฟังก์ชันล้วน ไม่แตะ DOM)
+function parseRunText(raw, now) {
+  const out = {};
+  now = now || new Date();
+  let t = String(raw || "").replace(/\u00a0/g, " ").replace(/(\d)[Oo](?=[\d.,:])/g, (m, a) => a + "0");
+  const num = s => parseFloat(String(s).replace(",", "."));
+  const ymd = (y, m, d) => {
+    const dt = new Date(y, m - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+    return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  };
+
+  // ----- ระยะ (km) -----
+  let km = null, m;
+  for (const x of t.matchAll(/(\d{1,3}(?:[.,]\d{1,3})?)\s*(?:km|kms|กม\.?|กิโลเมตร)(?![a-z\/])/gi)) {
+    const v = num(x[1]); if (v >= 0.2 && v <= 100) { km = v; break; }
+  }
+  if (km == null && (m = t.match(/(?:distance|ระยะทาง|ระยะ)\D{0,20}?(\d{1,3}[.,]\d{1,2})/i))) { const v = num(m[1]); if (v >= 0.2 && v <= 100) km = v; }
+  if (km == null && (m = t.match(/(\d{1,3}[.,]\d{1,2})\s*mi(?:les?)?\b/i))) { const v = num(m[1]) * 1.609344; if (v >= 0.2 && v <= 100) km = Math.round(v * 100) / 100; }
+  if (km != null) out.km = km;
+
+  // ----- เวลา (นาที) -----
+  let min = null;
+  const toks = [];
+  for (const x of t.matchAll(/(\d{1,2}):(\d{2})(?::(\d{2}))?/g)) {
+    const a = +x[1], b = +x[2], c = x[3] != null ? +x[3] : null;
+    const st = x.index, en = st + x[0].length;
+    const after = t.slice(en, en + 12), before = t.slice(Math.max(0, st - 15), st);
+    if (/^\s*(am|pm)/i.test(after)) continue;                         // เวลานาฬิกา
+    if (/^\s*(\/|min\s*\/|นาที\s*\/)/i.test(after) || /pace|เพซ/i.test(before)) continue; // เพซ
+    if (b >= 60 || (c != null && c >= 60)) continue;
+    const ctx = t.slice(Math.max(0, st - 25), en + 25);
+    toks.push({ three: c != null, val: c != null ? a * 60 + b + c / 60 : a + b / 60, label: /time|duration|elapsed|moving|เวลา/i.test(ctx) });
+  }
+  let pick = toks.find(x => x.three && x.val >= 3 && x.val <= 720);
+  if (!pick) pick = toks.find(x => !x.three && x.label && x.val >= 3 && x.val <= 720);
+  if (!pick && km != null) pick = toks.find(x => !x.three && x.val >= 3 && x.val / km >= 2.5 && x.val / km <= 15);
+  if (pick) min = pick.val;
+  const isSleep = km == null && /sleep|นอน/i.test(t);
+  if (min == null && !isSleep) {
+    if ((m = t.match(/(\d{1,2})\s*h(?:r|rs|our|ours)?\s*(\d{1,2})\s*m(?:in)?(?:\s*(\d{1,2})\s*s)?/i))) min = +m[1] * 60 + +m[2] + (m[3] ? +m[3] / 60 : 0);
+    else if ((m = t.match(/(\d{1,3})\s*m(?:in)?\s*(\d{1,2})\s*s\b/i))) min = +m[1] + +m[2] / 60;
+  }
+  if (isSleep) min = null;
+  if (min != null && min >= 1 && min <= 720) out.min = Math.round(min * 10) / 10;
+
+  // ----- HR เฉลี่ย -----
+  let hr = null;
+  if ((m = t.match(/(?:avg|average|เฉลี่ย)\.?\s*(?:heart\s*rate|hr|หัวใจ)\D{0,10}?(\d{2,3})\b/i)) || (m = t.match(/หัวใจเฉลี่ย\D{0,10}?(\d{2,3})\b/))) hr = +m[1];
+  if (hr == null) {
+    for (const x of t.matchAll(/(\d{2,3})\s*(?:bpm|ครั้ง)/gi)) {
+      const bef = t.slice(Math.max(0, x.index - 14), x.index);
+      if (/max|สูงสุด/i.test(bef)) continue;
+      hr = +x[1]; break;
+    }
+  }
+  if (hr != null && hr >= 40 && hr <= 220) out.hr = hr;
+
+  // ----- แคลอรี่ -----
+  const kc = s => { s = String(s); return /^\d{1,2}[.,]\d{3}$/.test(s) ? +s.replace(/[.,]/, "") : num(s); };
+  let kcal = null;
+  if ((m = t.match(/(\d{1,2}[.,]\d{3}|\d{2,4})\s*(?:kcal|cal\b|แคล)/i)) || (m = t.match(/calories?\D{0,15}?(\d{1,2}[.,]\d{3}|\d{2,4})/i))) kcal = kc(m[1]);
+  if (kcal != null && kcal >= 30 && kcal <= 6000) out.kcal = Math.round(kcal);
+
+  // ----- วันที่ -----
+  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const THM = { "ม.ค.": 1, "ก.พ.": 2, "มี.ค.": 3, "เม.ย.": 4, "พ.ค.": 5, "มิ.ย.": 6, "ก.ค.": 7, "ส.ค.": 8, "ก.ย.": 9, "ต.ค.": 10, "พ.ย.": 11, "ธ.ค.": 12 };
+  const yr = (y, mo, d) => {
+    if (y == null) { y = now.getFullYear(); const dt = new Date(y, mo - 1, d); if (dt - now > 7 * 864e5) y--; return y; }
+    y = +y; if (y < 100) y += 2000; if (y > 2400) y -= 543; return y;
+  };
+  let date = null;
+  if ((m = t.match(/(20\d{2})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) date = ymd(+m[1], +m[2], +m[3]);
+  if (!date && (m = t.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2}|25\d{2})/))) date = ymd(yr(m[3]), +m[2], +m[1]);
+  if (!date && (m = t.match(/(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?(?:\s*(\d{4}))?/i))) { const mo = MON[m[2].toLowerCase()]; date = ymd(yr(m[3], mo, +m[1]), mo, +m[1]); }
+  if (!date && (m = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s*(\d{4}))?/i))) { const mo = MON[m[1].toLowerCase()]; date = ymd(yr(m[3], mo, +m[2]), mo, +m[2]); }
+  if (!date && (m = t.match(/(\d{1,2})\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)\s*(\d{2,4})?/))) { const mo = THM[m[2]]; date = ymd(yr(m[3], mo, +m[1]), mo, +m[1]); }
+  if (!date && /yesterday|เมื่อวาน/i.test(t)) { const y = new Date(now.getTime() - 864e5); date = ymd(y.getFullYear(), y.getMonth() + 1, y.getDate()); }
+  if (!date && /\btoday\b|วันนี้/i.test(t)) date = ymd(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  if (date) out.date = date;
+
+  // ----- ชั่วโมงนอน (เฉพาะหน้าจอการนอน ไม่มีระยะวิ่ง) -----
+  if (km == null && /sleep|นอน/i.test(t)) {
+    if ((m = t.match(/(\d{1,2})\s*h(?:r|rs)?\s*(\d{1,2})\s*m/i)) || (m = t.match(/(\d{1,2})\s*ชม\.?\s*(\d{1,2})\s*นาที/))) {
+      const h = +m[1] + +m[2] / 60; if (h >= 1 && h <= 16) out.sleep = Math.round(h * 10) / 10;
+    }
+  }
+
+  // ----- ชื่อกิจกรรม -----
+  if ((m = t.match(/\b((?:morning|afternoon|evening|night|lunch|easy|long|trail|treadmill)\s+)?run(?:ning)?\b/i))) out.note = m[0].replace(/\b\w/g, c => c.toUpperCase());
+  else if (/วิ่ง/.test(t)) out.note = "วิ่ง";
+  return out;
+}
+
 async function readPhoto(file) {
   const msg = document.getElementById("photoMsg");
-  msg.textContent = tr("กำลังอ่านรูป...");
+  const say = s => { msg.textContent = s; };
+  say(tr("กำลังโหลดตัวอ่านรูป...") );
+  let worker;
+  try { worker = await getOcrWorker(); }
+  catch (e) { say(tr("โหลดตัวอ่านรูปไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่ หรือกรอกเอง")); return; }
   try {
-    const sample = await window.claude.use("sample");
-    if (!sample) { msg.textContent = tr("ฟีเจอร์อ่านรูปใช้ได้เฉพาะเวอร์ชันบน claude.ai กรุณากรอกเอง"); return; }
-    const res = await sample(
-      "This is a screenshot from a running or sleep app, typically Garmin Connect, Garmin watch app, or Strava. Activity screens show: date (top of screen or under the title), distance in km, moving or elapsed time (hh:mm:ss, convert to minutes), average heart rate in bpm, calories in kcal. Sleep screens show total sleep duration such as '7h 30m' (convert to decimal hours). Extract only what is visible. Respond ONLY with a JSON object with keys: date (YYYY-MM-DD or null), distance_km (number or null), duration_min (number or null), avg_hr (number or null), calories (number or null), sleep_hours (number or null), note (short string or empty, e.g. activity name). Use null for anything not visible. No markdown, no explanation.",
-      { images: [file] });
-    const j = JSON.parse(res.text.replace(/```json|```/g, "").trim());
-    if (j.date) lDate.value = j.date;
-    if (j.distance_km) lKm.value = j.distance_km;
-    if (j.duration_min) lMin.value = r1(j.duration_min);
-    if (j.avg_hr) lHr.value = Math.round(j.avg_hr);
-    if (j.calories) lKcal.value = Math.round(j.calories);
-    if (j.sleep_hours) lSleep.value = r1(j.sleep_hours);
-    if (j.note) lNote.value = j.note;
-    msg.textContent = tr("อ่านข้อมูลได้แล้ว ตรวจสอบค่าก่อนกดบันทึก");
+    const canvas = await prepImage(file);
+    ocrProgress = p => say(tr("กำลังอ่านรูป...") + " " + Math.round(p * 100) + "%");
+    say(tr("กำลังอ่านรูป..."));
+    await worker.setParameters({ tessedit_pageseg_mode: "3" });
+    const r1res = await worker.recognize(canvas);
+    const j = parseRunText(r1res.data.text);
+    if (!(j.km && j.min)) {           // รอบสอง: โหมดข้อความกระจาย เหมาะกับหน้าจอแดชบอร์ด
+      await worker.setParameters({ tessedit_pageseg_mode: "11" });
+      const r2 = await worker.recognize(canvas);
+      const j2 = parseRunText(r2.data.text);
+      for (const k of Object.keys(j2)) if (j[k] == null) j[k] = j2[k];
+    }
+    ocrProgress = null;
+    const found = [];
+    if (j.date) { lDate.value = j.date; found.push(j.date); }
+    if (j.km) { lKm.value = j.km; found.push(j.km + " km"); }
+    if (j.min) { lMin.value = r1(j.min); found.push(r1(j.min) + " " + tr("นาที")); }
+    if (j.hr) { lHr.value = j.hr; found.push("HR " + j.hr); }
+    if (j.kcal) { lKcal.value = j.kcal; found.push(j.kcal + " kcal"); }
+    if (j.sleep) { lSleep.value = r1(j.sleep); found.push(tr("นอน") + " " + r1(j.sleep) + " " + tr("ชม.")); }
+    if (j.note && !lNote.value.trim()) lNote.value = j.note;
+    const lp = document.getElementById("lPace");
+    if (lp && j.km && j.min) lp.value = fmtPace(j.min / j.km) + " /km";
+    if (!found.length) { say(tr("อ่านรูปแล้วแต่ไม่พบข้อมูลวิ่งหรือการนอน ลองรูปที่ชัดขึ้นหรือกรอกเอง")); return; }
+    let note = tr("อ่านได้:") + " " + found.join(" · ") + " — " + tr("ตรวจสอบค่าก่อนกดบันทึก");
+    if (j.km && j.min && (j.min / j.km < 2.5 || j.min / j.km > 15)) note += " (" + tr("เวลา/ระยะดูผิดปกติ ตรวจอีกครั้ง") + ")";
+    say(note);
   } catch (err) {
-    msg.textContent = tr("อ่านรูปไม่สำเร็จ กรุณากรอกเองหรือลองรูปที่ชัดขึ้น");
+    ocrProgress = null;
+    say(tr("อ่านรูปไม่สำเร็จ กรุณากรอกเองหรือลองรูปที่ชัดขึ้น"));
   }
 }
 
