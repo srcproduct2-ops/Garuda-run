@@ -475,6 +475,8 @@ let state = { profile: { ...DEFAULT_PROFILE }, days: {}, plan: null, tab: "today
 try {
   const s = JSON.parse(localStorage.getItem(KEY));
   if (s) state = { ...state, profile: { ...DEFAULT_PROFILE, ...s.profile }, days: s.days || {}, plan: s.plan || null, lang: s.lang || "th", user: s.user || null };
+  // บัญชีแบบอีเมล (ระบบเก่า) ไม่ให้ข้ามหน้า login แล้ว ต้องเข้าด้วย Google ผ่าน Firebase
+  if (state.user && state.user.provider === "local") state.user = null;
 } catch (e) {}
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ profile: state.profile, days: state.days, plan: state.plan, lang: state.lang, user: state.user })); } catch (e) {}
