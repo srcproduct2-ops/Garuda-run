@@ -368,6 +368,51 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   <button class="fab" data-tab="log" aria-label="บันทึกการวิ่ง"><span class="ic">PLUS</span></button>
 </nav>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc }
+    from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAFrYAzPDZMs6E0_81jiV7mWHG8bx6E2eo",
+    authDomain: "garuda-runner.firebaseapp.com",
+    projectId: "garuda-runner",
+    storageBucket: "garuda-runner.firebasestorage.app",
+    messagingSenderId: "675695844324",
+    appId: "1:675695844324:web:84cd2ec9f79d57fa82c5f1",
+    measurementId: "G-7P51XY5H5T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  try { getAnalytics(app); } catch (e) { /* Analytics เป็นตัวเลือก ไม่ต้องให้แอปหยุด */ }
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ฟังก์ชันที่แอปหลัก (สคริปต์ปกติ) เรียกใช้
+  window.cloudSignIn = () => signInWithPopup(auth, new GoogleAuthProvider());
+  window.cloudSignOut = () => signOut(auth);
+  window.cloudSave = async (state) => {
+    const u = auth.currentUser;
+    if (!u) return;
+    await setDoc(doc(db, "users", u.uid), {
+      profile: state.profile, days: state.days, plan: state.plan,
+      lang: state.lang, updatedAt: Date.now()
+    }, { merge: true });
+  };
+
+  // เมื่อสถานะการล็อกอินเปลี่ยน โหลดข้อมูลของผู้ใช้จาก Firestore
+  onAuthStateChanged(auth, async (u) => {
+    if (!u) { window.cloudOnUser && window.cloudOnUser(null); return; }
+    const snap = await getDoc(doc(db, "users", u.uid));
+    window.cloudOnUser && window.cloudOnUser({
+      user: { name: u.displayName || u.email, email: u.email, uid: u.uid, provider: "google" },
+      data: snap.exists() ? snap.data() : null
+    });
+  });
+</script>
 <script>
 const KEY = "runplanner-app-v4";
 const DAY_NAMES = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
@@ -415,7 +460,10 @@ try {
   const s = JSON.parse(localStorage.getItem(KEY));
   if (s) state = { ...state, profile: { ...DEFAULT_PROFILE, ...s.profile }, days: s.days || {}, plan: s.plan || null, lang: s.lang || "th", user: s.user || null };
 } catch (e) {}
-function save() { try { localStorage.setItem(KEY, JSON.stringify({ profile: state.profile, days: state.days, plan: state.plan, lang: state.lang, user: state.user })); } catch (e) {} }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ profile: state.profile, days: state.days, plan: state.plan, lang: state.lang, user: state.user })); } catch (e) {}
+  if (window.cloudSave && state.user && state.user.uid) window.cloudSave(state).catch(() => {});
+}
 const P = () => state.profile;
 // ต้องบันทึกโปรไฟล์ (พร้อมอายุ) ก่อนจึงสร้างแผนได้
 const profileMissing = () => { const m = []; if (!(Number(P().age) > 0)) m.push("อายุ"); if (!P().saved) m.push("กดบันทึกข้อมูลนักวิ่งในแท็บโปรไฟล์"); return m; };
@@ -1177,6 +1225,30 @@ render();
   sp.addEventListener("click", hide);
   setTimeout(hide, 3200);
 })();
+
+// ---------- เชื่อมกับ Firebase ----------
+window.cloudOnUser = info => {
+  if (!info) { state.user = null; save(); render(); return; }
+  if (info.data) {
+    state = { ...state,
+      profile: { ...DEFAULT_PROFILE, ...info.data.profile },
+      days: info.data.days || {},
+      plan: info.data.plan || null,
+      lang: info.data.lang || state.lang };
+  }
+  state.user = info.user;
+  save(); render();
+};
+ACT.googleLogin = async () => {
+  if (!window.cloudSignIn) { alert("กำลังโหลดระบบเข้าสู่ระบบ ลองใหม่อีกครั้ง"); return; }
+  try { await window.cloudSignIn(); }
+  catch (e) { authErr("เข้าสู่ระบบด้วย Google ไม่สำเร็จ"); }
+};
+ACT.logout = async () => {
+  if (!confirm("ออกจากระบบ?")) return;
+  if (window.cloudSignOut) await window.cloudSignOut();
+  state.user = null; state.authMode = "login"; save(); render();
+};
 </script>
 </body>
 </html>
