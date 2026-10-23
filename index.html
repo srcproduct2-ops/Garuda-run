@@ -866,6 +866,7 @@ const EN = {
   "บัญชีแบบ User ID ไม่มีอีเมลสำหรับกู้รหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ":"User ID accounts have no email for password recovery. Please contact the admin",
   "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
+Object.entries({"รูปลายน้ำผลวิ่ง":"Run photo watermark","อัปโหลดรูป แล้วใส่ระยะทาง เพซ เวลา แคลอรี่ พร้อมโลโก้ Garuda Runner":"Upload a photo and add distance, pace, time and calories with the Garuda Runner logo","เลือกรูป":"Choose photo","ใช้ข้อมูลวิ่งล่าสุด":"Use latest run","เวลา (ชม:นาที:วินาที)":"Time (h:mm:ss)","แคลอรี่ (kcal) ":"Calories (kcal) ","เพซ (คำนวณอัตโนมัติ) ":"Pace (auto) ","วันที่ (ไม่บังคับ)":"Date (optional)","รูปแบบ":"Layout","ข้อมูลเรียงด้านซ้าย":"Stats on the left","แถบข้อมูลด้านล่าง":"Bottom stats bar","ขนาดข้อความ":"Text size","บันทึกรูป":"Save image","แชร์รูป":"Share image","ยังไม่ได้เลือกรูป กดเลือกรูปเพื่อเริ่มสร้างลายน้ำ":"No photo yet. Choose a photo to start","ไม่มีข้อมูลการวิ่งให้ดึง":"No run data to use","เปิดรูปไม่สำเร็จ ลองรูปอื่น":"Could not open this photo. Try another"}).forEach(([k, v]) => { if (!(k in EN)) EN[k] = v; });
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
 const dn = i => state.lang === "en" ? DAY_EN[i] : DAY_NAMES[i];
 const dns = i => state.lang === "en" ? DAY_EN_S[i] : DAY_NAMES[i].slice(0, 2);
@@ -1163,7 +1164,7 @@ function render() {
   ind.style.background = TAB_COLORS[pi < 0 ? 0 : pi];
   if (TRK.map) { try { TRK.map.remove(); } catch (e) {} TRK.map = TRK.line = TRK.me = TRK.viewLine = null; OFF.circle = null; }
   document.getElementById("view").innerHTML = VIEWS[state.tab]();
-  if (state.tab === "track") trkMount();
+  if (state.tab === "track") trkMount(); if (state.tab === "track") wmMount();
   document.querySelector('.tabs button[data-tab="track"]').classList.toggle("rec", TRK.st === "run");
   profileBase = state.tab === "profile" ? profileSnap() : null;
   applyLang(document.body);
@@ -1371,6 +1372,7 @@ VIEWS.track = () => {
       <div class="actions"><button class="ghost" data-act="offGps">ไปที่ตำแหน่งฉัน</button><button id="offGo" data-act="offStart">ดาวน์โหลดพื้นที่นี้</button></div>
       <h4>พื้นที่ที่โหลดไว้</h4><div id="offList">${offListHTML()}</div>
     </section>
+    ${wmCardHTML()}
     <section class="card"><h3>เส้นทางที่ผ่านมา</h3>${list}</section>`;
 };
 function trkMount() {
@@ -1456,6 +1458,190 @@ const exportIcsFn = async () => {
 // ---------- การกระทำ ----------
 const ACT = {};
 ACT.exportIcs = exportIcsFn;
+
+// ---------- รูปลายน้ำผลวิ่ง (อัปโหลดรูป + ระยะทาง เพซ เวลา แคลอรี่ + โลโก้ Garuda Runner) ----------
+const WM = { img: null, v: { km: "", time: "", kcal: "", date: "", style: "left", size: 100 } };
+const WM_FONT = '"Noto Sans Thai","Sarabun",system-ui,-apple-system,Tahoma,sans-serif';
+const WM_LBL = {
+  th: { dist: "ระยะทาง", pace: "เพซ", time: "เวลา", kcal: "แคลอรี่", km: "กม." },
+  en: { dist: "Distance", pace: "Pace", time: "Time", kcal: "Calories", km: "km" }
+};
+function wmCardHTML() {
+  const v = WM.v;
+  return `<section class="card" id="wmCard"><h3>รูปลายน้ำผลวิ่ง</h3>
+    <p class="muted" style="margin:0 0 10px">อัปโหลดรูป แล้วใส่ระยะทาง เพซ เวลา แคลอรี่ พร้อมโลโก้ Garuda Runner</p>
+    <div class="actions" style="margin:0 0 12px"><label class="btn" for="wmPhoto">เลือกรูป</label><input id="wmPhoto" type="file" accept="image/*" hidden><button class="ghost" data-act="wmFill">ใช้ข้อมูลวิ่งล่าสุด</button></div>
+    <div class="grid2">
+      <div class="field"><label for="wmKm">ระยะ (km)</label><input id="wmKm" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(v.km)}"></div>
+      <div class="field"><label for="wmTime">เวลา (ชม:นาที:วินาที)</label><input id="wmTime" type="text" inputmode="numeric" placeholder="58:59" value="${esc(v.time)}"></div>
+      <div class="field"><label>เพซ (คำนวณอัตโนมัติ) </label><input id="wmPace" value="–" disabled></div>
+      <div class="field"><label for="wmKcal">แคลอรี่ (kcal) </label><input id="wmKcal" type="number" min="0" inputmode="numeric" value="${esc(v.kcal)}"></div>
+      <div class="field"><label for="wmDate">วันที่ (ไม่บังคับ)</label><input id="wmDate" type="date" value="${esc(v.date)}"></div>
+      <div class="field"><label for="wmStyle">รูปแบบ</label><select id="wmStyle"><option value="left"${v.style === "left" ? " selected" : ""}>ข้อมูลเรียงด้านซ้าย</option><option value="bottom"${v.style === "bottom" ? " selected" : ""}>แถบข้อมูลด้านล่าง</option></select></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label for="wmSize">ขนาดข้อความ</label><input id="wmSize" type="range" min="70" max="150" step="5" value="${esc(v.size)}"></div>
+    <p id="wmEmpty" class="muted" style="margin:12px 0 0">ยังไม่ได้เลือกรูป กดเลือกรูปเพื่อเริ่มสร้างลายน้ำ</p>
+    <canvas id="wmCv" hidden style="width:100%;height:auto;border-radius:16px;margin-top:12px;display:block"></canvas>
+    <div class="actions" id="wmBtns" hidden><button data-act="wmSave">บันทึกรูป</button><button class="ghost" data-act="wmShare">แชร์รูป</button></div>
+  </section>`;
+}
+function wmParseTime(t) {            // "58:59" | "1:05:30" | "45" (นาที) -> วินาที
+  t = String(t || "").trim().replace(",", ".");
+  if (!t) return 0;
+  const p = t.split(":").map(Number);
+  if (p.some(n => !isFinite(n) || n < 0)) return 0;
+  if (p.length === 1) return Math.round(p[0] * 60);
+  if (p.length === 2) return Math.round(p[0] * 60 + p[1]);
+  return Math.round(p[0] * 3600 + p[1] * 60 + p[2]);
+}
+function wmFmtTime(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, p2 = n => String(n).padStart(2, "0");
+  return h ? h + ":" + p2(m) + ":" + p2(s) : m + ":" + p2(s);
+}
+function wmFmtPace(secPerKm) {
+  let m = Math.floor(secPerKm / 60), s = Math.round(secPerKm % 60);
+  if (s === 60) { m++; s = 0; }
+  return m + ":" + String(s).padStart(2, "0");
+}
+function wmRead() {
+  const g = id => { const e = document.getElementById(id); return e ? e.value : ""; };
+  WM.v = { km: g("wmKm"), time: g("wmTime"), kcal: g("wmKcal"), date: g("wmDate"), style: g("wmStyle") || "left", size: Number(g("wmSize")) || 100 };
+  const km = Number(WM.v.km), sec = wmParseTime(WM.v.time), p = document.getElementById("wmPace");
+  if (p) p.value = km > 0 && sec > 0 ? wmFmtPace(sec / km) + " /" + (state.lang === "en" ? "km" : "กม.") : "–";
+  wmDraw();
+}
+function wmMount() {
+  const km = Number(WM.v.km), sec = wmParseTime(WM.v.time), p = document.getElementById("wmPace");
+  if (p) p.value = km > 0 && sec > 0 ? wmFmtPace(sec / km) + " /" + (state.lang === "en" ? "km" : "กม.") : "–";
+  wmDraw();
+}
+function wmLatest() {
+  const days = state.days || {}, ks = Object.keys(days).filter(k => days[k] && days[k].km).sort();
+  if (ks.length) { const k = ks[ks.length - 1], r = days[k]; return { km: r.km, min: r.min, kcal: r.kcal || 0, date: k }; }
+  const rt = (state.routes || [])[0];
+  return rt ? { km: rt.km, min: rt.min, kcal: 0, date: rt.date } : null;
+}
+function wmGarudaPath(c, x, y, w, color) {   // วาดโลโก้ครุฑ (viewBox 120x84) กว้าง w
+  const k = w / 120;
+  c.save(); c.translate(x, y); c.scale(k, k); c.fillStyle = color;
+  ["M58 44C46 16 24 6 4 16c14 2 24 8 31 16-9-1-18 2-24 9 13-3 26 1 36 9 6 5 12 8 18 8z",
+   "M62 44c12-28 34-38 54-28-14 2-24 8-31 16 9-1 18 2 24 9-13-3-26 1-36 9-6 5-12 8-11-6z",
+   "M52 38c0-7 4-13 9-15 3 1 4 4 3 7-1 4-6 9-12 8z", "M68 25l8 3-8 3z"].forEach(d => c.fill(new Path2D(d)));
+  c.beginPath(); c.arc(62, 26, 7, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+function wmDraw() {
+  const cv = document.getElementById("wmCv");
+  if (!cv) return;
+  const empty = document.getElementById("wmEmpty"), btns = document.getElementById("wmBtns");
+  if (!WM.img) { cv.hidden = true; if (empty) empty.hidden = false; if (btns) btns.hidden = true; return; }
+  let w = WM.img.naturalWidth, h = WM.img.naturalHeight;
+  const MAXD = 2400; if (Math.max(w, h) > MAXD) { const f = MAXD / Math.max(w, h); w = Math.round(w * f); h = Math.round(h * f); }
+  cv.width = w; cv.height = h; cv.hidden = false; if (empty) empty.hidden = true; if (btns) btns.hidden = false;
+  const c = cv.getContext("2d");
+  c.drawImage(WM.img, 0, 0, w, h);
+  const L = WM_LBL[state.lang === "en" ? "en" : "th"], v = WM.v;
+  const u = Math.min(w, h) / 1080 * ((Number(v.size) || 100) / 100);
+  const km = Number(v.km), sec = wmParseTime(v.time), kcal = Math.round(Number(v.kcal));
+  const items = [];
+  if (km > 0) items.push({ l: L.dist, v: km.toFixed(2), u: L.km });
+  if (km > 0 && sec > 0) items.push({ l: L.pace, v: wmFmtPace(sec / km), u: "/" + L.km });
+  if (sec > 0) items.push({ l: L.time, v: wmFmtTime(sec), u: "" });
+  if (kcal > 0) items.push({ l: L.kcal, v: String(kcal), u: "kcal" });
+  let dateTxt = "";
+  if (v.date) { try { dateTxt = parseISO(v.date).toLocaleDateString(state.lang === "en" ? "en-GB" : "th-TH", { day: "numeric", month: "short", year: "numeric" }); } catch (e) {} }
+  const white = "#ffffff", lime = "#8fdc52";
+  const shadow = () => { c.shadowColor = "rgba(0,0,0,.55)"; c.shadowBlur = 8 * u; c.shadowOffsetY = 2 * u; };
+  const noShadow = () => { c.shadowColor = "transparent"; c.shadowBlur = 0; c.shadowOffsetY = 0; };
+  const brand = (x, baseY, align) => {      // โลโก้ + ข้อความ Garuda Runner
+    const iw = 64 * u, ih = iw * 84 / 120, fs = 40 * u;
+    c.font = `800 ${fs}px ${WM_FONT}`;
+    const g = c.measureText("Garuda ").width, r = c.measureText("Runner").width, total = iw + 12 * u + g + r;
+    let x0 = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+    shadow();
+    wmGarudaPath(c, x0, baseY - ih * 0.82, iw, lime);
+    c.textAlign = "left"; c.textBaseline = "alphabetic";
+    c.fillStyle = white; c.fillText("Garuda ", x0 + iw + 12 * u, baseY);
+    c.fillStyle = lime; c.fillText("Runner", x0 + iw + 12 * u + g, baseY);
+    noShadow();
+  };
+  if (v.style === "bottom") {
+    const gr = c.createLinearGradient(0, h - 520 * u, 0, h);
+    gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.72)");
+    c.fillStyle = gr; c.fillRect(0, h - 520 * u, w, 520 * u);
+    const pad = 48 * u, n = Math.max(items.length, 1), cw = (w - pad * 2) / n, rowY = h - 175 * u;
+    if (dateTxt) { shadow(); c.fillStyle = "rgba(255,255,255,.85)"; c.font = `600 ${30 * u}px ${WM_FONT}`; c.textAlign = "center"; c.textBaseline = "alphabetic"; c.fillText(dateTxt, w / 2, rowY - 110 * u); noShadow(); }
+    items.forEach((it, i) => {
+      const cx = pad + cw * i + cw / 2;
+      c.textBaseline = "alphabetic"; shadow();
+      c.font = `800 ${64 * u}px ${WM_FONT}`; const vw = c.measureText(it.v).width;
+      c.font = `700 ${30 * u}px ${WM_FONT}`; const uw = it.u ? c.measureText(" " + it.u).width : 0;
+      const sx = cx - (vw + uw) / 2;
+      c.textAlign = "left"; c.fillStyle = white; c.font = `800 ${64 * u}px ${WM_FONT}`; c.fillText(it.v, sx, rowY);
+      if (it.u) { c.font = `700 ${30 * u}px ${WM_FONT}`; c.fillText(" " + it.u, sx + vw, rowY); }
+      c.textAlign = "center"; c.fillStyle = "rgba(255,255,255,.8)"; c.font = `600 ${28 * u}px ${WM_FONT}`; c.fillText(it.l, cx, rowY + 44 * u);
+      noShadow();
+      if (i > 0) { c.fillStyle = "rgba(255,255,255,.35)"; c.fillRect(pad + cw * i - 1 * u, rowY - 56 * u, 2 * u, 110 * u); }
+    });
+    brand(w / 2, h - 52 * u, "center");
+  } else {
+    const gr = c.createLinearGradient(0, 0, w * 0.62, 0);
+    gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = gr; c.fillRect(0, 0, w * 0.62, h);
+    const gb = c.createLinearGradient(0, h - 260 * u, 0, h);
+    gb.addColorStop(0, "rgba(0,0,0,0)"); gb.addColorStop(1, "rgba(0,0,0,.5)");
+    c.fillStyle = gb; c.fillRect(0, h - 260 * u, w, 260 * u);
+    const x = 56 * u, itemH = 132 * u, brandY = h - 56 * u;
+    let y = brandY - 80 * u - items.length * itemH;       // เริ่มวาดจากบนลงล่าง ให้ชิดเหนือโลโก้
+    if (dateTxt) { shadow(); c.fillStyle = "rgba(255,255,255,.85)"; c.font = `600 ${30 * u}px ${WM_FONT}`; c.textAlign = "left"; c.textBaseline = "alphabetic"; c.fillText(dateTxt, x, y - 8 * u); noShadow(); }
+    items.forEach((it, i) => {
+      const by = y + i * itemH;
+      c.textAlign = "left"; c.textBaseline = "alphabetic"; shadow();
+      c.fillStyle = "rgba(255,255,255,.85)"; c.font = `600 ${28 * u}px ${WM_FONT}`; c.fillText(it.l, x, by + 28 * u);
+      c.fillStyle = white; c.font = `800 ${76 * u}px ${WM_FONT}`; c.fillText(it.v, x, by + 104 * u);
+      if (it.u) { const vw = c.measureText(it.v).width; c.font = `700 ${34 * u}px ${WM_FONT}`; c.fillText(" " + it.u, x + vw, by + 104 * u); }
+      noShadow();
+    });
+    brand(x, brandY, "left");
+  }
+}
+function wmLoadFile(f) {
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => { WM.img = im; wmRead(); setTimeout(() => URL.revokeObjectURL(url), 5000); const cv = document.getElementById("wmCv"); if (cv && cv.scrollIntoView) cv.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+  im.onerror = () => { URL.revokeObjectURL(url); alert("เปิดรูปไม่สำเร็จ ลองรูปอื่น"); };
+  im.src = url;
+}
+function wmBlob() { return new Promise(res => document.getElementById("wmCv").toBlob(res, "image/jpeg", 0.92)); }
+function wmName() { return "garuda-runner-" + (WM.v.date || iso(new Date())) + ".jpg"; }
+ACT.wmFill = () => {
+  const r = wmLatest();
+  if (!r) { alert("ไม่มีข้อมูลการวิ่งให้ดึง"); return; }
+  const sec = Math.round((Number(r.min) || 0) * 60);
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+  set("wmKm", r.km ? String(Math.round(r.km * 100) / 100) : ""); set("wmTime", sec ? wmFmtTime(sec) : ""); set("wmKcal", r.kcal ? Math.round(r.kcal) : ""); set("wmDate", r.date || "");
+  wmRead();
+};
+ACT.wmSave = async () => {
+  if (!WM.img) return;
+  const b = await wmBlob(); if (!b) return;
+  const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = wmName();
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+ACT.wmShare = async () => {
+  if (!WM.img) return;
+  const b = await wmBlob(); if (!b) return;
+  const file = new File([b], wmName(), { type: "image/jpeg" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Garuda Runner" }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  ACT.wmSave();
+};
+document.addEventListener("input", e => { if (e.target.closest && e.target.closest("#wmCard") && e.target.id !== "wmPhoto") wmRead(); });
+document.addEventListener("change", e => {
+  if (e.target.id === "wmPhoto") { const f = e.target.files[0]; if (f) wmLoadFile(f); e.target.value = ""; }
+  else if (e.target.closest && e.target.closest("#wmCard")) wmRead();
+});
+
 ACT.offGps = () => {
   if (!navigator.geolocation || !TRK.map) return;
   navigator.geolocation.getCurrentPosition(p => TRK.map && TRK.map.setView([p.coords.latitude, p.coords.longitude], 14), () => alert("อ่านตำแหน่งไม่ได้ ตรวจสอบสิทธิ์ Location"), { enableHighAccuracy: true, timeout: 10000 });
