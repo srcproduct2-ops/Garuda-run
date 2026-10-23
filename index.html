@@ -311,6 +311,12 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 .au-link{background:none;border:0;color:var(--forest);font:inherit;font-weight:700;font-size:.82rem;padding:6px 8px;cursor:pointer;box-shadow:none}
 .au-link:hover{transform:none;box-shadow:none;opacity:.8}
 .au-err{min-height:20px;color:var(--bad);font-size:.84rem;font-weight:600;margin:0 4px 6px}
+#dlg{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;background:rgba(20,16,40,.45)}
+.dlg-box{width:min(380px,100%);background:#fff;border-radius:24px;padding:22px;box-shadow:0 24px 60px rgba(20,16,40,.3)}
+.dlg-box h3{margin:0 0 8px;font-size:1.1rem}
+.dlg-box p{margin:0}
+.dlg-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.dlg-actions button{width:100%}
 .au-err.ok{color:#1f7a4d}
 .au-hint{margin:0 4px 8px;font-size:.84rem;color:var(--muted);line-height:1.45}
 .au-in{display:flex;align-items:center;gap:10px;background:#fff;border-radius:999px;padding:6px 6px 6px 8px;margin:10px 0;box-shadow:0 2px 8px rgba(20,20,40,.04);border:1.5px solid transparent;transition:border-color .2s,box-shadow .2s}
@@ -787,7 +793,8 @@ const EN = {
   "ลด":"reduce","ทำได้ ":"Achieved ","วิ่งเบา / วิ่งยาว ":"Easy / long run ","ไม่มีรายการ":"No entries","ของ Max HR)":"of Max HR)",
   "Resting HR":"Resting HR","นอน":"Sleep","ครั้ง ":"runs ","เฟส":"Phase","ตารางรายวัน":"Daily table","เพิ่ม":"Add","ไม่บังคับ":"optional",
   "เว้นว่างถ้าไม่ได้วิ่ง":"leave blank if no run","การวิ่ง":"Run","การกระทำ":"Actions","ปริมาณ":"Volume","เวลา":"Time","ข้อมูล":"Data",
-  "กรุณา":"Please","ลองรูปที่ชัดขึ้น":"try a clearer image","รูป":"image","เข้ากับคุณ":"suits you","ทั้งหมด":"all","ชั่วโมง":"hours"
+  "กรุณา":"Please","ลองรูปที่ชัดขึ้น":"try a clearer image","รูป":"image","เข้ากับคุณ":"suits you","ทั้งหมด":"all","ชั่วโมง":"hours",
+  "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
 const dn = i => state.lang === "en" ? DAY_EN[i] : DAY_NAMES[i];
@@ -897,7 +904,7 @@ VIEWS.log = () => {
         <div class="field"><label>เพซ (คำนวณอัตโนมัติ)</label><input id="lPace" value="${pace} /km" disabled></div>
       </div>
       <div class="field" style="margin-top:10px"><label for="lNote">บันทึกเพิ่มเติม</label><textarea id="lNote" rows="2">${esc(r.note || "")}</textarea></div>
-      <div class="actions"><button data-act="saveDay">บันทึก</button>${state.days[d] ? `<button class="del" data-act="delDay" data-date="${d}">ลบรายการวันนี้</button>` : ""}</div>
+      <div class="actions"><button data-act="saveDay">บันทึก</button><button class="ghost" data-act="clearLog">ล้างข้อมูล</button>${state.days[d] ? `<button class="del" data-act="delDay" data-date="${d}">ลบรายการวันนี้</button>` : ""}</div>
     </section>
     <section class="card"><h3>สัปดาห์นี้ (${shortDate(mon)} – ${shortDate(addDays(mon, 6))})</h3>
       ${weekDays.length ? `<ul class="daylist">${weekDays.map(k => { const x = state.days[k]; return `<li data-act="editDay" data-date="${k}"><span>${shortDate(parseISO(k))}</span><span class="muted">${x.sleep ? "นอน " + x.sleep + " ชม." : ""}${x.km ? " · วิ่ง " + r1(x.km) + " km" : ""}${x.hr ? " · HR " + x.hr : ""}</span></li>`; }).join("")}</ul>` : `<p class="muted">ยังไม่มีบันทึกในสัปดาห์นี้</p>`}
@@ -1060,7 +1067,7 @@ function render() {
   document.body.classList.toggle("guest", guest);
   const authEl = document.getElementById("auth");
   if (authEl) { authEl.hidden = !guest; authEl.style.display = guest ? "flex" : "none"; }
-  if (guest) { renderAuthMode(); applyLang(document.body); return; }
+  if (guest) { profileBase = null; renderAuthMode(); applyLang(document.body); return; }
   const h = new Date().getHours();
   document.getElementById("title").textContent = TITLES[state.tab];
   document.getElementById("greet").textContent = state.tab === "today" ? (h < 12 ? "สวัสดีตอนเช้า" : h < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น") : "";
@@ -1078,6 +1085,7 @@ function render() {
   ind.style.opacity = pi < 0 ? 0 : 1;
   ind.style.background = TAB_COLORS[pi < 0 ? 0 : pi];
   document.getElementById("view").innerHTML = VIEWS[state.tab]();
+  profileBase = state.tab === "profile" ? profileSnap() : null;
   applyLang(document.body);
 }
 
@@ -1250,12 +1258,12 @@ ACT.replan = () => {
 ACT.lang = () => { state.lang = state.lang === "en" ? "th" : "en"; save(); render(); };
 ACT.bell = () => alert("ยังไม่มีการแจ้งเตือนในตอนนี้");
 ACT.seed = () => { if (Object.keys(state.days).length && !confirm("ข้อมูลตัวอย่างจะเพิ่มทับวันเดิม ดำเนินการต่อ?")) return; seedDemo(); alert("โหลดข้อมูลตัวอย่างแล้ว"); };
-ACT.saveProfile = () => {
-  if (!(Number(pAge.value) > 0)) { alert("กรุณากรอกอายุก่อนบันทึก"); pAge.focus(); return; }
+function doSaveProfile() {
+  if (!(Number(pAge.value) > 0)) { alert("กรุณากรอกอายุก่อนบันทึก"); pAge.focus(); return false; }
   const days = [0,1,2,3,4,5,6].filter(i => document.getElementById("d" + i).checked);
-  if (!days.length) { alert("เลือกวันที่สะดวกซ้อมอย่างน้อย 1 วัน"); return; }
+  if (!days.length) { alert("เลือกวันที่สะดวกซ้อมอย่างน้อย 1 วัน"); return false; }
   const maxHr = Number(pMaxHr.value), restHr = Number(pRestHr.value);
-  if (maxHr && restHr && restHr >= maxHr) { alert("Resting HR ต้องน้อยกว่า Max HR"); return; }
+  if (maxHr && restHr && restHr >= maxHr) { alert("Resting HR ต้องน้อยกว่า Max HR"); return false; }
   state.profile = {
     goal: pGoal.value, age: pAge.value, weight: pWeight.value, years: pYears.value, longest: pLongest.value, curPace: pCurPace.value,
     days, minutes: Number(pMin.value) || 45,
@@ -1263,8 +1271,16 @@ ACT.saveProfile = () => {
     injNote: pInjNote.value.trim(), maxHr: pMaxHr.value, restHr: pRestHr.value, cv: pCv.value, vo2: pVo2.value,
     saved: true
   };
-  save(); render(); alert("บันทึกโปรไฟล์แล้ว แผนที่สร้างไว้จะแสดงคำเตือนจนกว่าจะสร้างแผนใหม่");
+  save();
+  return true;
+}
+ACT.saveProfile = () => { if (doSaveProfile()) { render(); alert("บันทึกโปรไฟล์แล้ว แผนที่สร้างไว้จะแสดงคำเตือนจนกว่าจะสร้างแผนใหม่"); } };
+ACT.clearLog = () => {
+  for (const id of ["lSleep", "lKm", "lMin", "lHr", "lKcal", "lRpe", "lNote"]) { const e = document.getElementById(id); if (e) e.value = ""; }
+  const lp = document.getElementById("lPace"); if (lp) lp.value = "– /km";
+  const pm = document.getElementById("photoMsg"); if (pm) pm.textContent = "";
 };
+
 
 // ---------- อ่านข้อมูลจากรูป (OCR ในเบราว์เซอร์ ด้วย Tesseract.js) ----------
 // ใช้ "eng+tha" ถ้าแอปวิ่งตั้งเป็นภาษาไทย (ต้องดาวน์โหลดข้อมูลภาษาเพิ่ม และช้าลงเล็กน้อย)
@@ -1462,12 +1478,55 @@ async function readPhoto(file) {
   }
 }
 
+// ---------- เตือนเมื่อโปรไฟล์ที่แก้ไขยังไม่ได้บันทึก ----------
+const PROFILE_FIELDS = ["pGoal", "pAge", "pWeight", "pYears", "pLongest", "pCurPace", "pMin", "pMaxHr", "pRestHr", "pCv", "pVo2", "pInjNote",
+  ...[0, 1, 2, 3, 4, 5, 6].map(i => "d" + i), ...["knee", "ankle", "heel", "back", "other"].map(k => "i_" + k)];
+let profileBase = null;
+function profileSnap() {
+  return JSON.stringify(PROFILE_FIELDS.map(id => { const e = document.getElementById(id); return e ? (e.type === "checkbox" ? e.checked : e.value) : null; }));
+}
+function profileDirty() {
+  return state.tab === "profile" && profileBase !== null && !!document.getElementById("pAge") && profileSnap() !== profileBase;
+}
+function askSaveProfile() {
+  return new Promise(res => {
+    const o = document.createElement("div");
+    o.id = "dlg"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+    o.innerHTML = `<div class="dlg-box"><h3>${tr("โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก")}</h3><p class="muted">${tr("ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?")}</p>
+      <div class="dlg-actions"><button data-d="save">${tr("บันทึก")}</button><button class="ghost" data-d="discard">${tr("ไม่บันทึก")}</button><button class="ghost" data-d="cancel">${tr("ยกเลิก")}</button></div></div>`;
+    const onKey = ev => { if (ev.key === "Escape") { ev.preventDefault(); done("cancel"); } };
+    const done = v => { document.removeEventListener("keydown", onKey, true); o.remove(); res(v); };
+    o.addEventListener("click", ev => {
+      ev.stopPropagation();
+      const b = ev.target.closest("[data-d]");
+      if (b) done(b.dataset.d); else if (ev.target === o) done("cancel");
+    });
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(o);
+    o.querySelector('[data-d="save"]').focus();
+  });
+}
+// คืนค่า true ถ้าไปต่อได้ (ไม่มีการแก้ไข / บันทึกแล้ว / เลือกไม่บันทึก) false ถ้าให้อยู่หน้าเดิม
+async function confirmLeaveProfile() {
+  if (document.getElementById("dlg")) return false;
+  if (!profileDirty()) return true;
+  const c = await askSaveProfile();
+  if (c === "save") return doSaveProfile();
+  return c === "discard";
+}
+window.addEventListener("beforeunload", e => { if (profileDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
 // ---------- event ----------
-document.addEventListener("click", e => {
+document.addEventListener("click", async e => {
   const t = e.target.closest("[data-act],[data-tab]");
   if (!t) return;
-  if (t.dataset.tab) { state.tab = t.dataset.tab; if (t.dataset.tab !== "log") state.ui.logDate = state.ui.logDate; render(); return; }
-  if (ACT[t.dataset.act]) ACT[t.dataset.act](t.dataset);
+  const ds = t.dataset;
+  if (ds.tab) {
+    if (ds.tab !== state.tab && !(await confirmLeaveProfile())) return;
+    state.tab = ds.tab; render(); return;
+  }
+  if (["logout", "lang", "seed"].includes(ds.act) && !(await confirmLeaveProfile())) return;
+  if (ACT[ds.act]) ACT[ds.act](ds);
 });
 document.addEventListener("change", e => {
   const id = e.target.id;
