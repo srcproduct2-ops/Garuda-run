@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Garuda Runner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
 :root{--bg:#f2f4ef;--card:#ffffff;--text:#152015;--muted:#858f80;--lime:#d8f8ac;--lime-d:#8fdc52;--forest:#1d3a22;--soft:#f3f6ef;--border:#e7ebe2;--bad:#e5484d;--warn:#e6a00b;--ok:#3fa34d;--shadow:0 1px 3px rgba(20,40,20,.05),0 8px 24px rgba(20,40,20,.06);color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c110c;--card:#151c15;--text:#eef5e8;--muted:#8a9a84;--lime:#22341b;--lime-d:#8fdc52;--forest:#8fdc52;--soft:#1b241b;--border:#243024;--shadow:0 10px 30px rgba(0,0,0,.4);color-scheme:dark}}
@@ -118,7 +120,7 @@ tbody tr:last-child td{border-bottom:0}
 select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 14px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:36px}
 /* เมนูด้านล่าง: แถบสีขาวโค้งลอย ไอคอนอยู่เหนือป้ายชื่อ แท็บที่เลือกมีพื้นสีอ่อนรองรับ (ตามวิดีโออ้างอิง) */
 .tabs{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 28px));display:flex;align-items:center;gap:12px;z-index:6}
-.pill{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;border-radius:30px;background:rgba(255,255,255,.92);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);box-shadow:0 10px 30px rgba(20,30,20,.12)}
+.pill{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px;border-radius:30px;background:rgba(255,255,255,.92);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);box-shadow:0 10px 30px rgba(20,30,20,.12)}
 :root[data-theme="dark"] .pill{background:rgba(30,36,30,.92)}
 .tabs button{background:none;color:var(--text);box-shadow:none;font-size:.7rem;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 0 8px;border-radius:22px;transition:transform .2s cubic-bezier(.2,.8,.2,1),background .25s,color .25s;min-width:0}
 .tabs button:hover{transform:translateY(-2px);box-shadow:none;background:var(--soft)}
@@ -253,7 +255,7 @@ th{background:var(--soft)}
 .table-wrap th:first-child{border-radius:12px 0 0 0}
 
 /* ---------- แอนิเมชันแท็บแบบวิดีโอ: วงกลมสีสไลด์ไปตามไอคอน + ไอคอนเด้ง ---------- */
-.pill{position:relative;--w:calc((100% - 28px)/4)}
+.pill{position:relative;--w:calc((100% - 32px)/5)}
 .ind{position:absolute;top:16px;left:calc(8px + var(--i,0) * (var(--w) + 4px) + (var(--w) - 50px) / 2);width:50px;height:34px;border-radius:999px;background:var(--grad);box-shadow:0 8px 20px rgba(60,40,140,.28);transition:left .6s cubic-bezier(.34,1.45,.64,1),background .45s ease,opacity .3s;pointer-events:none;z-index:0}
 .tabs button{position:relative;z-index:1}
 .tabs button .ic{width:50px;height:34px;background:none!important;box-shadow:none!important;transition:color .35s ease,transform .35s cubic-bezier(.34,1.56,.64,1)}
@@ -342,6 +344,36 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
 .whoav{width:52px;height:52px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1.2rem;flex:none}
 .whocard b{font-size:1.05rem}
 .whocard button{flex:none}
+
+/* ---------- แท็บวิ่งจับเส้นทาง ---------- */
+.trk-map{height:min(52vh,420px);min-height:280px;border-radius:20px;overflow:hidden;background:var(--soft);position:relative;z-index:0}
+.trk-map .leaflet-container{width:100%;height:100%;font:inherit;background:var(--soft)}
+:root[data-theme="dark"] .trk-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .trk-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92)}}
+.trk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.trk-stats div{background:var(--soft);border-radius:16px;padding:10px 6px;text-align:center;min-width:0}
+.trk-stats b{display:block;font-size:1.35rem;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.trk-stats span{font-size:.72rem;font-weight:700;color:var(--muted)}
+.trk-ctrl{display:flex;gap:10px;margin-top:12px}
+.trk-ctrl button{flex:1;padding:15px 10px;font-size:1rem}
+.trk-ctrl button.stop{background:var(--bad);box-shadow:none}
+.trk-msg{margin:10px 2px 0;font-size:.82rem;color:var(--muted);min-height:1.2em}
+.trk-msg.err{color:var(--bad);font-weight:700}
+.trk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);margin-right:6px;animation:trkblink 1.2s infinite}
+@keyframes trkblink{50%{opacity:.25}}
+.tabs button.rec .ic::after{content:"";position:absolute;top:2px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card);animation:trkblink 1.2s infinite}
+.me-dot{width:16px;height:16px;border-radius:50%;background:#3d9bff;border:3px solid #fff;box-shadow:0 0 0 6px rgba(61,155,255,.25)}
+.pt-flag{width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.runlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.runlist li{display:flex;align-items:center;gap:10px;background:var(--soft);border-radius:16px;padding:10px 12px}
+.runlist li .info{flex:1;min-width:0;cursor:pointer}
+.runlist li b{display:block;font-size:.95rem}
+.runlist li.sel{outline:2px solid var(--lime-d)}
+.off-bar{height:10px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:10px}
+.off-bar i{display:block;height:100%;width:0;background:var(--lime-d);border-radius:99px;transition:width .2s}
+.off-bar[hidden]{display:none}
+.tabs .pill button .ic,.tabs .pill button.on .ic{width:42px}
+.pill .ind{width:42px;left:calc(8px + var(--i,0) * (var(--w) + 4px) + (var(--w) - 42px) / 2)}
 </style>
 </head>
 <body class="guest">
@@ -394,6 +426,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
   <div class="pill">
     <span class="ind" aria-hidden="true"></span>
     <button data-tab="today"><span class="ic">HOME</span><span class="lb">หน้าหลัก</span></button>
+    <button data-tab="track"><span class="ic">RUN</span><span class="lb">เส้นทาง</span></button>
     <button data-tab="summary"><span class="ic">CHART</span><span class="lb">สรุป</span></button>
     <button data-tab="plan"><span class="ic">CAL</span><span class="lb">แผน</span></button>
     <button data-tab="profile"><span class="ic">USER</span><span class="lb">โปรไฟล์</span></button>
@@ -443,7 +476,7 @@ body.guest .topbar,body.guest .tabs,body.guest #view{display:none!important}
     const u = auth.currentUser;
     if (!u) return;
     await setDoc(doc(db, "users", u.uid), {
-      profile: state.profile, days: state.days, plan: state.plan,
+      profile: state.profile, days: state.days, plan: state.plan, routes: (state.routes || []).slice(0, 40),
       lang: state.lang, name: u.displayName || null, email: u.email || null, updatedAt: Date.now()
     }, { merge: true });
   };
@@ -476,7 +509,7 @@ const RACES = {
 };
 const DEFAULT_PROFILE = { goal: "finish", age: "", weight: "", years: "", longest: "", curPace: "", days: [1,3,6], minutes: 45, injuries: [], injNote: "", maxHr: "", restHr: "", cv: "", vo2: "" };
 const TAG = { long: "t-long", tempo: "t-tempo", easy: "t-easy", rest: "t-rest", race: "t-race" };
-const TITLES = { today: "วันนี้", log: "บันทึกประจำวัน", plan: "แผนซ้อม", summary: "สรุปรายสัปดาห์", profile: "โปรไฟล์นักวิ่ง" };
+const TITLES = { today: "วันนี้", track: "วิ่งจับเส้นทาง", log: "บันทึกประจำวัน", plan: "แผนซ้อม", summary: "สรุปรายสัปดาห์", profile: "โปรไฟล์นักวิ่ง" };
 
 const pad = n => String(n).padStart(2, "0");
 const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -504,12 +537,12 @@ const shortDate = d => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 let state = { profile: { ...DEFAULT_PROFILE }, days: {}, plan: null, tab: "today", lang: "th", ui: { wk: null, logDate: null } };
 try {
   const s = JSON.parse(localStorage.getItem(KEY));
-  if (s) state = { ...state, profile: { ...DEFAULT_PROFILE, ...s.profile }, days: s.days || {}, plan: s.plan || null, lang: s.lang || "th", user: s.user || null };
+  if (s) state = { ...state, profile: { ...DEFAULT_PROFILE, ...s.profile }, days: s.days || {}, plan: s.plan || null, lang: s.lang || "th", user: s.user || null, routes: s.routes || [] };
   // บัญชีแบบอีเมล (ระบบเก่า) ไม่ให้ข้ามหน้า login แล้ว ต้องเข้าด้วย Google ผ่าน Firebase
   if (state.user && state.user.provider === "local") state.user = null;
 } catch (e) {}
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ profile: state.profile, days: state.days, plan: state.plan, lang: state.lang, user: state.user })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ profile: state.profile, days: state.days, plan: state.plan, lang: state.lang, user: state.user, routes: state.routes || [] })); } catch (e) {}
   if (window.cloudSave && state.user && state.user.uid) window.cloudSave(state).catch(() => {});
 }
 const P = () => state.profile;
@@ -689,6 +722,7 @@ function progressRows(wk, act) {
 }
 
 const IC = {
+  run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>',
   pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
@@ -794,6 +828,17 @@ const EN = {
   "Resting HR":"Resting HR","นอน":"Sleep","ครั้ง ":"runs ","เฟส":"Phase","ตารางรายวัน":"Daily table","เพิ่ม":"Add","ไม่บังคับ":"optional",
   "เว้นว่างถ้าไม่ได้วิ่ง":"leave blank if no run","การวิ่ง":"Run","การกระทำ":"Actions","ปริมาณ":"Volume","เวลา":"Time","ข้อมูล":"Data",
   "กรุณา":"Please","ลองรูปที่ชัดขึ้น":"try a clearer image","รูป":"image","เข้ากับคุณ":"suits you","ทั้งหมด":"all","ชั่วโมง":"hours",
+  "วิ่งจับเส้นทาง":"Route tracker","เส้นทาง":"Route","เริ่มวิ่งจับเส้นทาง":"Start route tracking","เริ่มวิ่ง":"Start run","พักการวิ่ง":"Pause","วิ่งต่อ":"Resume","จบการวิ่ง":"Finish run","กม.":"km","เพซ /km":"Pace /km",
+  "เส้นทางที่ผ่านมา":"Past routes","ยังไม่มีเส้นทางที่บันทึกไว้":"No saved routes yet","กดเริ่มวิ่ง แล้วเปิดหน้าจอแอปไว้ระหว่างวิ่ง":"Tap Start, then keep the app screen on while running",
+  "กำลังบันทึกเส้นทาง":"Recording route","กำลังหาสัญญาณ GPS...":"Looking for GPS signal...","พักอยู่ (เวลาและระยะหยุดนับ)":"Paused (time and distance stopped)",
+  "ต้องเปิดแอปผ่าน https:// หรือ localhost เพื่อใช้ GPS":"Open the app via https:// or localhost to use GPS","อุปกรณ์นี้ไม่รองรับ GPS":"This device doesn't support GPS",
+  "ไม่ได้รับอนุญาตใช้ตำแหน่ง กรุณาเปิดสิทธิ์ Location ในเบราว์เซอร์":"Location permission denied. Please allow Location in your browser","มีการวิ่งที่ยังไม่ได้บันทึก":"Unsaved run found",
+  "บันทึกการวิ่งนี้":"Save this run","ทิ้งการวิ่ง":"Discard","โหลดแผนที่ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่":"Map failed to load. Check your connection and retry",
+  "แผนที่ออฟไลน์":"Offline maps","รัศมี":"Radius","ความละเอียด":"Detail","ดาวน์โหลดพื้นที่นี้":"Download this area","ไปที่ตำแหน่งฉัน":"Go to my location","พื้นที่ที่โหลดไว้":"Downloaded areas","ยังไม่มีพื้นที่ที่ดาวน์โหลดไว้":"No downloaded areas yet",
+  "เลื่อนแผนที่ให้วงกลมสีเขียวครอบพื้นที่ที่จะวิ่ง แล้วดาวน์โหลดไว้ใช้ตอนไม่มีอินเทอร์เน็ต":"Move the map so the green circle covers where you'll run, then download it for use without internet",
+  "ทั่วไป (ซูม 13–15)":"Standard (zoom 13–15)","ปกติ (ซูม 13–16)":"Normal (zoom 13–16)","ละเอียด (ซูม 13–17)":"Detailed (zoom 13–17)","ลบแผนที่ออฟไลน์พื้นที่นี้?":"Delete this offline area?",
+  "ต้องเปิดแอปผ่าน https:// หรือ localhost เพื่อเก็บแผนที่ออฟไลน์":"Open the app via https:// or localhost to store offline maps","ต้องต่ออินเทอร์เน็ตเพื่อดาวน์โหลดแผนที่":"Internet is required to download maps","ดาวน์โหลดแผนที่ครบแล้ว ใช้งานออฟไลน์ได้":"Map downloaded. Ready for offline use",
+  "พื้นที่ใหญ่เกินไป ลดรัศมีหรือความละเอียดลง":"Area too large. Reduce radius or detail","ดาวน์โหลด":"Download","ไทล์":"tiles","ประมาณ":"About","ยกเลิก":"Cancel",
   "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
@@ -830,7 +875,7 @@ window.confirm = m => nativeConfirm(tr(m));
 
 
 
-const TAB_COLORS = ["linear-gradient(135deg,#6c4cf0,#3d9bff)","linear-gradient(135deg,#3d9bff,#22c3e6)","linear-gradient(135deg,#e1467c,#ff8a5c)","linear-gradient(135deg,#f5a524,#ff6b35)"];
+const TAB_COLORS = ["linear-gradient(135deg,#6c4cf0,#3d9bff)","linear-gradient(135deg,#22b07d,#3d9bff)","linear-gradient(135deg,#3d9bff,#22c3e6)","linear-gradient(135deg,#e1467c,#ff8a5c)","linear-gradient(135deg,#f5a524,#ff6b35)"];
 const VIEWS = {};
 VIEWS.today = () => {
   const t = new Date(), wk = currentWeek(), idx = planWeekIdx(), tIdx = (t.getDay() + 6) % 7;
@@ -859,7 +904,7 @@ VIEWS.today = () => {
       <p class="muted" style="margin:0">${wk ? `วิ่งแล้ว ${r1(act.km)} จาก ${r1(wk.km)} km` : "ยังไม่มีเป้าหมายสัปดาห์นี้"}</p>
     </div>${wk ? ring(pct, `${Math.round(pct)}%`, "ของแผน") : ""}</div></section>
     ${replanBanner()}
-    <section class="card runcard"><div class="runtxt"><span class="muted">วันนี้</span><h3>ออกไปวิ่งกันเลย</h3><p class="muted" style="margin:0">${todaySess && todaySess.km ? `${todaySess.label} ${r1(todaySess.km)} km` : "วันนี้เป็นวันพัก ผ่อนคลายได้เลย"}</p></div><div class="runner" aria-hidden="true"><svg viewBox="0 0 320 130"><defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#8fdc52" stop-opacity="0"/><stop offset="1" stop-color="#8fdc52" stop-opacity=".9"/></linearGradient></defs><circle cx="250" cy="34" r="22" fill="#d8f8ac"/><path d="M14 116H306" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/><path d="M30 92h44M22 102h30M46 80h26" stroke="url(#gl)" stroke-width="4" stroke-linecap="round"/><g stroke="var(--forest)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M150 66 L140 92 L166 100 L178 118"/><path d="M140 92 L116 104 L104 118"/><path d="M146 46 L138 66"/><path d="M148 50 L174 60 L190 48"/><path d="M145 50 L120 58 L108 48"/></g><circle cx="151" cy="30" r="11" fill="var(--forest)"/></svg></div></section>
+    <section class="card runcard"><div class="runtxt"><span class="muted">วันนี้</span><h3>ออกไปวิ่งกันเลย</h3><p class="muted" style="margin:0">${todaySess && todaySess.km ? `${todaySess.label} ${r1(todaySess.km)} km` : "วันนี้เป็นวันพัก ผ่อนคลายได้เลย"}</p><div class="actions" style="margin-top:10px"><button class="accent" data-tab="track">เริ่มวิ่งจับเส้นทาง</button></div></div><div class="runner" aria-hidden="true"><svg viewBox="0 0 320 130"><defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#8fdc52" stop-opacity="0"/><stop offset="1" stop-color="#8fdc52" stop-opacity=".9"/></linearGradient></defs><circle cx="250" cy="34" r="22" fill="#d8f8ac"/><path d="M14 116H306" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/><path d="M30 92h44M22 102h30M46 80h26" stroke="url(#gl)" stroke-width="4" stroke-linecap="round"/><g stroke="var(--forest)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M150 66 L140 92 L166 100 L178 118"/><path d="M140 92 L116 104 L104 118"/><path d="M146 46 L138 66"/><path d="M148 50 L174 60 L190 48"/><path d="M145 50 L120 58 L108 48"/></g><circle cx="151" cy="30" r="11" fill="var(--forest)"/></svg></div></section>
     <section class="card"><div class="strip">${strip}</div></section>
     <div class="stats2">
       ${stat(IC.run, r1(act.km) + " km", "ระยะสัปดาห์นี้")}
@@ -1075,22 +1120,336 @@ function render() {
   document.getElementById("bellBtn").innerHTML = IC.bell;
   document.querySelectorAll(".tabs button").forEach(b => {
     b.classList.toggle("on", b.dataset.tab === state.tab);
-    const ic = b.querySelector(".ic"), key = { HOME: "home", CHART: "chart", PLUS: "plus", CAL: "cal", USER: "user" }[ic.textContent];
+    const ic = b.querySelector(".ic"), key = { HOME: "home", RUN: "run", CHART: "chart", PLUS: "plus", CAL: "cal", USER: "user" }[ic.textContent];
     if (key && !ic.dataset.ok) { ic.innerHTML = IC[key]; ic.dataset.ok = "1"; }
   });
   document.getElementById("langBtn").innerHTML = `<span class="${state.lang === "th" ? "cur" : ""}">TH</span><i>/</i><span class="${state.lang === "en" ? "cur" : ""}">EN</span>`;
   // ตัวบ่งชี้สไลด์ไปตามแท็บที่เลือก (เหมือนวิดีโออ้างอิง)
-  const ind = document.querySelector(".pill .ind"), order = ["today", "summary", "plan", "profile"], pi = order.indexOf(state.tab);
+  const ind = document.querySelector(".pill .ind"), order = ["today", "track", "summary", "plan", "profile"], pi = order.indexOf(state.tab);
   ind.style.setProperty("--i", pi < 0 ? 0 : pi);
   ind.style.opacity = pi < 0 ? 0 : 1;
   ind.style.background = TAB_COLORS[pi < 0 ? 0 : pi];
+  if (TRK.map) { try { TRK.map.remove(); } catch (e) {} TRK.map = TRK.line = TRK.me = TRK.viewLine = null; OFF.circle = null; }
   document.getElementById("view").innerHTML = VIEWS[state.tab]();
+  if (state.tab === "track") trkMount();
+  document.querySelector('.tabs button[data-tab="track"]').classList.toggle("rec", TRK.st === "run");
   profileBase = state.tab === "profile" ? profileSnap() : null;
   applyLang(document.body);
 }
 
+
+// ---------- วิ่งจับเส้นทาง (GPS + แผนที่) ----------
+const TRK = { st: "idle", pts: [], dist: 0, startTs: 0, accMs: 0, lastTick: 0, watchId: null, timer: null, wake: null, map: null, line: null, me: null, viewLine: null, viewId: null, msg: "", err: false };
+const TRK_DRAFT = "garuda-trk-draft";
+const hav = (a, b) => {
+  const R = 6371000, t = x => x * Math.PI / 180, dLat = t(b[0] - a[0]), dLng = t(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(t(a[0])) * Math.cos(t(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+const trkElapsed = () => TRK.accMs + (TRK.st === "run" ? Date.now() - TRK.lastTick : 0);
+const fmtDur = ms => { const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return (h ? h + ":" + pad(m) : m) + ":" + pad(sec); };
+function trkSetMsg(m, err) { TRK.msg = m; TRK.err = !!err; const el = document.getElementById("trkMsg"); if (el) { el.textContent = tr(m); el.className = "trk-msg" + (err ? " err" : ""); } }
+function trkDraftSave() {
+  try { localStorage.setItem(TRK_DRAFT, JSON.stringify({ pts: TRK.pts, dist: TRK.dist, accMs: trkElapsed(), date: iso(new Date(TRK.startTs || Date.now())) })); } catch (e) {}
+}
+function trkUI() {
+  const d = document.getElementById("trkDist"); if (!d) return;
+  const km = TRK.dist / 1000, ms = trkElapsed();
+  d.textContent = km.toFixed(2);
+  document.getElementById("trkTime").textContent = fmtDur(ms);
+  document.getElementById("trkPace").textContent = km > 0.03 ? fmtPace(ms / 60000 / km) : "–";
+}
+function trkDraw() {
+  if (!TRK.map) return;
+  const ll = TRK.pts.map(p => [p[0], p[1]]);
+  if (!TRK.line) TRK.line = L.polyline(ll, { color: "#7c5cff", weight: 6, opacity: .9, lineJoin: "round" }).addTo(TRK.map);
+  else TRK.line.setLatLngs(ll);
+  const last = ll[ll.length - 1];
+  if (last) {
+    if (!TRK.me) TRK.me = L.marker(last, { icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }), interactive: false }).addTo(TRK.map);
+    else TRK.me.setLatLng(last);
+    TRK.map.panTo(last, { animate: true });
+  }
+}
+function trkOnPos(pos) {
+  const c = pos.coords;
+  if (TRK.st !== "run") return;
+  if (c.accuracy > 35) { trkSetMsg("สัญญาณ GPS ยังไม่แม่น (±" + Math.round(c.accuracy) + " ม.) รอสักครู่...", false); return; }
+  const pt = [Number(c.latitude.toFixed(6)), Number(c.longitude.toFixed(6)), pos.timestamp];
+  const prev = TRK.pts[TRK.pts.length - 1];
+  if (prev) {
+    const dm = hav(prev, pt), dt = (pt[2] - prev[2]) / 1000;
+    if (dm < Math.max(4, c.accuracy * 0.4)) return;          // ขยับน้อยกว่าความคลาดเคลื่อน ไม่นับ
+    if (dt > 0 && dm / dt > 12) return;                       // เร็วเกิน ~43 กม./ชม. น่าจะเป็นสัญญาณกระโดด
+    TRK.dist += dm;
+  }
+  TRK.pts.push(pt);
+  trkSetMsg("กำลังบันทึกเส้นทาง", false);
+  trkUI(); trkDraw();
+  if (TRK.pts.length % 8 === 0) trkDraftSave();
+}
+function trkOnErr(e) {
+  trkSetMsg(e.code === 1 ? "ไม่ได้รับอนุญาตใช้ตำแหน่ง กรุณาเปิดสิทธิ์ Location ในเบราว์เซอร์" : e.code === 3 ? "หาตำแหน่งไม่ทัน ลองออกไปที่โล่งแจ้ง" : "อ่านตำแหน่งไม่ได้", true);
+}
+async function trkWake(on) {
+  try {
+    if (on && "wakeLock" in navigator) TRK.wake = await navigator.wakeLock.request("screen");
+    else if (!on && TRK.wake) { await TRK.wake.release(); TRK.wake = null; }
+  } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && TRK.st === "run") trkWake(true); });
+function trkWatch() {
+  if (TRK.watchId !== null) navigator.geolocation.clearWatch(TRK.watchId);
+  TRK.watchId = navigator.geolocation.watchPosition(trkOnPos, trkOnErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  clearInterval(TRK.timer); TRK.timer = setInterval(trkUI, 1000);
+}
+function trkStop(clear) {
+  if (TRK.watchId !== null) { navigator.geolocation.clearWatch(TRK.watchId); TRK.watchId = null; }
+  clearInterval(TRK.timer); TRK.timer = null; trkWake(false);
+  if (clear) { Object.assign(TRK, { st: "idle", pts: [], dist: 0, startTs: 0, accMs: 0, lastTick: 0 }); try { localStorage.removeItem(TRK_DRAFT); } catch (e) {} }
+}
+// ลดจำนวนจุด (Douglas-Peucker) ก่อนบันทึก ให้ข้อมูลเล็กลง
+function simplify(pts, tol) {
+  if (pts.length < 3) return pts;
+  const k = 111320, lat0 = pts[0][0] * Math.PI / 180, X = p => p[1] * k * Math.cos(lat0), Y = p => p[0] * k;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const st = [[0, pts.length - 1]];
+  while (st.length) {
+    const [a, b] = st.pop(); let md = 0, mi = -1;
+    const ax = X(pts[a]), ay = Y(pts[a]), bx = X(pts[b]), by = Y(pts[b]), dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    for (let i = a + 1; i < b; i++) {
+      const px = X(pts[i]), py = Y(pts[i]);
+      let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+      const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+      if (d > md) { md = d; mi = i; }
+    }
+    if (md > tol && mi > -1) { keep[mi] = 1; st.push([a, mi], [mi, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+function trkSaveRun(pts, dist, ms, dateStr) {
+  const km = Math.round(dist / 10) / 100;
+  const min = Math.round(ms / 6000) / 10;
+  if (!(km > 0) || !(min > 0)) return false;
+  const rec = state.days[dateStr] || {};
+  rec.km = Math.round(((rec.km || 0) + km) * 100) / 100;
+  rec.min = Math.round(((rec.min || 0) + min) * 10) / 10;
+  state.days[dateStr] = rec;
+  let line = simplify(pts.map(p => [p[0], p[1]]), 3);
+  if (line.length > 500) line = line.filter((_, i) => i % Math.ceil(line.length / 500) === 0 || i === line.length - 1);
+  state.routes = [{ id: "r" + Date.now(), date: dateStr, km, min, pts: line }, ...(state.routes || [])].slice(0, 60);
+  state.ui.logDate = dateStr;
+  save();
+  return true;
+}
+function trkResumeDraft() {
+  try { return JSON.parse(localStorage.getItem(TRK_DRAFT)); } catch (e) { return null; }
+}
+function trkBtns() {
+  if (TRK.st === "idle") return `<button class="accent" data-act="trkStart">เริ่มวิ่ง</button>`;
+  if (TRK.st === "run") return `<button class="ghost" data-act="trkPause">พักการวิ่ง</button><button class="stop" data-act="trkFinish">จบการวิ่ง</button>`;
+  return `<button data-act="trkResume">วิ่งต่อ</button><button class="stop" data-act="trkFinish">จบการวิ่ง</button>`;
+}
+
+// ---------- แผนที่ออฟไลน์ (ดาวน์โหลดไทล์เป็นวงกลม เก็บใน Cache API) ----------
+const TILE_CACHE = "garuda-tiles-v1", TILE_URL = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+const OFF_KEY = "garuda-offline-regions", OFF_MAX = 3000;
+const OFF = { busy: false, cancel: false, done: 0, total: 0, circle: null };
+const offRegions = () => { try { return JSON.parse(localStorage.getItem(OFF_KEY)) || []; } catch (e) { return []; } };
+const offSaveRegions = a => { try { localStorage.setItem(OFF_KEY, JSON.stringify(a)); } catch (e) {} };
+const tileXY = (lat, lng, z) => { const n = 2 ** z, la = lat * Math.PI / 180; return [Math.floor((lng + 180) / 360 * n), Math.floor((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n)]; };
+const tileLat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / 2 ** z; return 180 / Math.PI * Math.atan(.5 * (Math.exp(n) - Math.exp(-n))); };
+const tileLng = (x, z) => x / 2 ** z * 360 - 180;
+function offTiles(lat, lng, rKm, z0, z1) {
+  const out = [], kl = 111.32 * Math.cos(lat * Math.PI / 180), dLat = rKm / 111.32, dLng = rKm / kl;
+  for (let z = z0; z <= z1; z++) {
+    const n = 2 ** z, [x0, y1] = tileXY(lat - dLat, lng - dLng, z), [x1, y0] = tileXY(lat + dLat, lng + dLng, z);
+    for (let x = Math.max(0, x0); x <= Math.min(n - 1, x1); x++) for (let y = Math.max(0, y0); y <= Math.min(n - 1, y1); y++) {
+      const w = tileLng(x, z), e = tileLng(x + 1, z), no = tileLat(y, z), so = tileLat(y + 1, z);
+      const cx = Math.min(Math.max(lng, w), e), cy = Math.min(Math.max(lat, so), no);
+      const dx = (cx - lng) * kl, dy = (cy - lat) * 111.32;
+      if (dx * dx + dy * dy <= rKm * rKm) out.push([z, x, y]);
+    }
+  }
+  return out;
+}
+// เลเยอร์แผนที่: ใช้ไทล์ในเครื่องก่อน ถ้าไม่มีค่อยโหลดจากเน็ต
+const CachedTiles = L.TileLayer.extend({
+  createTile(coords, done) {
+    const img = document.createElement("img"); img.alt = "";
+    const url = this.getTileUrl(coords), fin = () => done(null, img);
+    const net = () => { img.onload = fin; img.onerror = fin; img.src = url; };
+    if (!window.caches) { net(); return img; }
+    caches.open(TILE_CACHE).then(c => c.match(url)).then(r => r ? r.blob() : null).then(b => {
+      if (!b) return net();
+      const u = URL.createObjectURL(b);
+      img.onload = () => { URL.revokeObjectURL(u); fin(); };
+      img.onerror = () => { URL.revokeObjectURL(u); net(); };
+      img.src = u;
+    }).catch(net);
+    return img;
+  }
+});
+const offOpts = () => { const r = Number((document.getElementById("offR") || {}).value) || 3, z1 = Number((document.getElementById("offZ") || {}).value) || 16; return { r, z0: 13, z1 }; };
+function offCenter() { return TRK.map ? TRK.map.getCenter() : { lat: 13.7563, lng: 100.5018 }; }
+function offUpdate() {
+  const est = document.getElementById("offEst"); if (!est) return;
+  const o = offOpts(), c = offCenter(), n = offTiles(c.lat, c.lng, o.r, o.z0, o.z1).length;
+  est.textContent = tr(n > OFF_MAX ? "พื้นที่ใหญ่เกินไป (" + n + " ไทล์) ลดรัศมีหรือความละเอียดลง" : "ประมาณ " + n + " ไทล์ · ราว " + Math.max(1, Math.round(n * 18 / 1024)) + " MB");
+  est.dataset.n = n;
+  if (TRK.map) {
+    if (!OFF.circle) OFF.circle = L.circle(c, { radius: o.r * 1000, color: "#22b07d", weight: 2, dashArray: "6 6", fillColor: "#22b07d", fillOpacity: .12, interactive: false }).addTo(TRK.map);
+    OFF.circle.setLatLng(c); OFF.circle.setRadius(o.r * 1000);
+    if (TRK.st !== "idle") OFF.circle.setStyle({ opacity: 0, fillOpacity: 0 }); else OFF.circle.setStyle({ opacity: 1, fillOpacity: .12 });
+  }
+}
+function offProgress() {
+  const bar = document.getElementById("offBar"), go = document.getElementById("offGo"); if (!bar) return;
+  bar.hidden = !OFF.busy; bar.firstElementChild.style.width = (OFF.total ? OFF.done / OFF.total * 100 : 0) + "%";
+  if (go) { go.textContent = tr(OFF.busy ? "ยกเลิก (" + OFF.done + "/" + OFF.total + ")" : "ดาวน์โหลดพื้นที่นี้"); go.dataset.act = OFF.busy ? "offCancel" : "offStart"; go.className = OFF.busy ? "ghost" : ""; }
+}
+function offListHTML() {
+  const rs = offRegions();
+  if (!rs.length) return `<p class="muted" style="margin:0">ยังไม่มีพื้นที่ที่ดาวน์โหลดไว้</p>`;
+  return `<ul class="runlist">${rs.map(r => `<li><div class="info" data-act="offGo" data-id="${r.id}"><b>รัศมี ${r.r} กม. · ${shortDate(new Date(r.ts))}</b><span class="muted">${r.done}/${r.total} ไทล์ · ซูม ${r.z0}–${r.z1}</span></div><button class="del" data-act="offDel" data-id="${r.id}">ลบ</button></li>`).join("")}</ul>`;
+}
+function offRefreshList() { const el = document.getElementById("offList"); if (el) { el.innerHTML = offListHTML(); applyLang(el); } }
+document.addEventListener("change", e => { if (e.target.id === "offR" || e.target.id === "offZ") offUpdate(); });
+
+VIEWS.track = () => {
+  const draft = TRK.st === "idle" ? trkResumeDraft() : null;
+  const draftCard = draft && draft.pts && draft.pts.length > 1 ? `<section class="card"><h3>มีการวิ่งที่ยังไม่ได้บันทึก</h3>
+      <p class="muted" style="margin:0">${r1(draft.dist / 1000)} km · ${fmtDur(draft.accMs)} (${draft.date})</p>
+      <div class="actions"><button data-act="trkDraftSave">บันทึกการวิ่งนี้</button><button class="del" data-act="trkDraftDiscard">ทิ้งการวิ่ง</button></div></section>` : "";
+  const runs = state.routes || [];
+  const list = runs.length ? `<ul class="runlist">${runs.slice(0, 15).map(r => `<li class="${TRK.viewId === r.id ? "sel" : ""}"><div class="info" data-act="trkView" data-id="${r.id}"><b>${shortDate(parseISO(r.date))} · ${r1(r.km)} km</b><span class="muted">${fmtDur(r.min * 60000)} · ${fmtPace(r.min / r.km)} /km</span></div><button class="del" data-act="trkDel" data-id="${r.id}">ลบ</button></li>`).join("")}</ul>` : `<p class="muted" style="margin:0">ยังไม่มีเส้นทางที่บันทึกไว้</p>`;
+  return `${draftCard}
+    <section class="card">
+      <div id="trkMap" class="trk-map"></div>
+      <div class="trk-stats"><div><b id="trkDist">0.00</b><span>กม.</span></div><div><b id="trkTime">0:00</b><span>เวลา</span></div><div><b id="trkPace">–</b><span>เพซ /km</span></div></div>
+      <div class="trk-ctrl" id="trkCtrl">${trkBtns()}</div>
+      <p id="trkMsg" class="trk-msg${TRK.err ? " err" : ""}">${esc(TRK.msg || "กดเริ่มวิ่ง แล้วเปิดหน้าจอแอปไว้ระหว่างวิ่ง")}</p>
+    </section>
+    <section class="card"><h3>แผนที่ออฟไลน์</h3>
+      <p class="muted" style="margin:0 0 10px">เลื่อนแผนที่ให้วงกลมสีเขียวครอบพื้นที่ที่จะวิ่ง แล้วดาวน์โหลดไว้ใช้ตอนไม่มีอินเทอร์เน็ต</p>
+      <div class="grid2"><div class="field"><label for="offR">รัศมี</label><select id="offR"><option value="1">1 กม.</option><option value="2">2 กม.</option><option value="3" selected>3 กม.</option><option value="5">5 กม.</option></select></div>
+      <div class="field"><label for="offZ">ความละเอียด</label><select id="offZ"><option value="15">ทั่วไป (ซูม 13–15)</option><option value="16" selected>ปกติ (ซูม 13–16)</option><option value="17">ละเอียด (ซูม 13–17)</option></select></div></div>
+      <p id="offEst" class="muted" style="margin:10px 0 0"></p>
+      <div id="offBar" class="off-bar" hidden><i></i></div>
+      <div class="actions"><button class="ghost" data-act="offGps">ไปที่ตำแหน่งฉัน</button><button id="offGo" data-act="offStart">ดาวน์โหลดพื้นที่นี้</button></div>
+      <h4>พื้นที่ที่โหลดไว้</h4><div id="offList">${offListHTML()}</div>
+    </section>
+    <section class="card"><h3>เส้นทางที่ผ่านมา</h3>${list}</section>`;
+};
+function trkMount() {
+  if (typeof L === "undefined") { trkSetMsg("โหลดแผนที่ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่", true); return; }
+  const m = L.map("trkMap", { zoomControl: true, attributionControl: true }).setView([13.7563, 100.5018], 15);
+  new CachedTiles("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(m);
+  OFF.circle = null; m.on("moveend", offUpdate);
+  TRK.map = m;
+  if (TRK.st !== "idle" && TRK.pts.length) {
+    trkDraw();
+    if (TRK.line) m.fitBounds(TRK.line.getBounds(), { padding: [30, 30], maxZoom: 17 });
+  } else if (TRK.viewId) {
+    const r = (state.routes || []).find(x => x.id === TRK.viewId); if (r) trkShowRoute(r);
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => { if (TRK.map === m) m.setView([p.coords.latitude, p.coords.longitude], 16); }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+  }
+  trkUI(); offUpdate(); offProgress();
+}
+function trkShowRoute(r) {
+  if (!TRK.map || !r.pts.length) return;
+  if (TRK.viewLine) TRK.viewLine.remove();
+  const ll = r.pts.map(p => [p[0], p[1]]);
+  const g = L.featureGroup([
+    L.polyline(ll, { color: "#7c5cff", weight: 6, opacity: .9, lineJoin: "round" }),
+    L.circleMarker(ll[0], { radius: 7, color: "#fff", weight: 3, fillColor: "#22b07d", fillOpacity: 1 }),
+    L.circleMarker(ll[ll.length - 1], { radius: 7, color: "#fff", weight: 3, fillColor: "#e5484d", fillOpacity: 1 })
+  ]).addTo(TRK.map);
+  TRK.viewLine = g;
+  TRK.map.fitBounds(g.getBounds(), { padding: [30, 30] });
+}
+function trkRefreshCtrl() { const c = document.getElementById("trkCtrl"); if (c) { c.innerHTML = trkBtns(); applyLang(c); } document.querySelector('.tabs button[data-tab="track"]').classList.toggle("rec", TRK.st === "run"); }
+
 // ---------- การกระทำ ----------
 const ACT = {};
+ACT.offGps = () => {
+  if (!navigator.geolocation || !TRK.map) return;
+  navigator.geolocation.getCurrentPosition(p => TRK.map && TRK.map.setView([p.coords.latitude, p.coords.longitude], 14), () => alert("อ่านตำแหน่งไม่ได้ ตรวจสอบสิทธิ์ Location"), { enableHighAccuracy: true, timeout: 10000 });
+};
+ACT.offCancel = () => { OFF.cancel = true; };
+ACT.offStart = async () => {
+  if (OFF.busy) return;
+  if (!window.caches || !window.isSecureContext) { alert("ต้องเปิดแอปผ่าน https:// หรือ localhost เพื่อเก็บแผนที่ออฟไลน์"); return; }
+  if (!navigator.onLine) { alert("ต้องต่ออินเทอร์เน็ตเพื่อดาวน์โหลดแผนที่"); return; }
+  const o = offOpts(), c = offCenter(), tiles = offTiles(c.lat, c.lng, o.r, o.z0, o.z1);
+  if (tiles.length > OFF_MAX) { alert("พื้นที่ใหญ่เกินไป ลดรัศมีหรือความละเอียดลง"); return; }
+  if (!confirm("ดาวน์โหลด " + tiles.length + " ไทล์ (ราว " + Math.max(1, Math.round(tiles.length * 18 / 1024)) + " MB) ?")) return;
+  OFF.busy = true; OFF.cancel = false; OFF.done = 0; OFF.total = tiles.length; offProgress();
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  const cache = await caches.open(TILE_CACHE); let i = 0, fail = 0;
+  const worker = async () => {
+    while (!OFF.cancel) {
+      const t = tiles[i++]; if (!t) return;
+      const url = TILE_URL(t[0], t[1], t[2]);
+      try {
+        if (!(await cache.match(url))) { const r = await fetch(url, { mode: "cors" }); if (!r.ok) throw 0; await cache.put(url, r); }
+      } catch (e) { fail++; }
+      OFF.done++; if (OFF.done % 5 === 0 || OFF.done === OFF.total) offProgress();
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  const ok = OFF.done - fail, was = OFF.cancel;
+  OFF.busy = false; OFF.cancel = false; offProgress();
+  if (ok > 0) { const rs = offRegions(); rs.unshift({ id: "o" + Date.now(), lat: c.lat, lng: c.lng, r: o.r, z0: o.z0, z1: o.z1, total: tiles.length, done: ok, ts: Date.now() }); offSaveRegions(rs); }
+  offRefreshList();
+  alert(was ? "ยกเลิกแล้ว เก็บไว้ " + ok + " ไทล์" : fail ? "โหลดเสร็จ สำเร็จ " + ok + " ไทล์ ล้มเหลว " + fail + " ไทล์" : "ดาวน์โหลดแผนที่ครบแล้ว ใช้งานออฟไลน์ได้");
+};
+ACT.offGo = ds => { const r = offRegions().find(x => x.id === ds.id); if (r && TRK.map) { TRK.map.setView([r.lat, r.lng], 14); window.scrollTo({ top: 0, behavior: "smooth" }); } };
+ACT.offDel = async ds => {
+  if (!confirm("ลบแผนที่ออฟไลน์พื้นที่นี้?")) return;
+  const rs = offRegions(), r = rs.find(x => x.id === ds.id); if (!r) return;
+  const rest = rs.filter(x => x.id !== r.id), keep = new Set();
+  rest.forEach(x => offTiles(x.lat, x.lng, x.r, x.z0, x.z1).forEach(t => keep.add(TILE_URL(t[0], t[1], t[2]))));
+  try { const c = await caches.open(TILE_CACHE); for (const t of offTiles(r.lat, r.lng, r.r, r.z0, r.z1)) { const u = TILE_URL(t[0], t[1], t[2]); if (!keep.has(u)) await c.delete(u); } } catch (e) {}
+  offSaveRegions(rest); offRefreshList();
+};
+ACT.trkStart = () => {
+  if (!navigator.geolocation) { trkSetMsg("อุปกรณ์นี้ไม่รองรับ GPS", true); return; }
+  if (!window.isSecureContext) { trkSetMsg("ต้องเปิดแอปผ่าน https:// หรือ localhost เพื่อใช้ GPS", true); return; }
+  if (TRK.viewLine) { TRK.viewLine.remove(); TRK.viewLine = null; } TRK.viewId = null;
+  Object.assign(TRK, { st: "run", pts: [], dist: 0, accMs: 0, startTs: Date.now(), lastTick: Date.now() });
+  if (TRK.line) { TRK.line.remove(); TRK.line = null; }
+  offUpdate(); trkWatch(); trkWake(true); trkSetMsg("กำลังหาสัญญาณ GPS...", false); trkRefreshCtrl(); trkUI();
+};
+ACT.trkPause = () => { TRK.accMs = trkElapsed(); TRK.st = "pause"; trkDraftSave(); trkSetMsg("พักอยู่ (เวลาและระยะหยุดนับ)", false); trkRefreshCtrl(); trkUI(); };
+ACT.trkResume = () => { TRK.lastTick = Date.now(); TRK.st = "run"; trkWake(true); trkSetMsg("กำลังบันทึกเส้นทาง", false); trkRefreshCtrl(); };
+ACT.trkFinish = () => {
+  const ms = trkElapsed();
+  if (TRK.dist < 20) { if (!confirm("ระยะสั้นมาก (น้อยกว่า 20 ม.) ทิ้งการวิ่งนี้ใช่ไหม?")) return; trkStop(true); render(); return; }
+  const ok = trkSaveRun(TRK.pts, TRK.dist, ms, iso(new Date(TRK.startTs)));
+  const km = r1(TRK.dist / 1000);
+  trkStop(true);
+  if (ok) { state.tab = "log"; render(); alert("บันทึกการวิ่ง " + km + " km ลงบันทึกประจำวันแล้ว เพิ่ม HR/ความเหนื่อยต่อได้เลย"); }
+  else render();
+};
+ACT.trkView = ds => {
+  if (TRK.st !== "idle") { alert("กำลังวิ่งอยู่ ดูเส้นทางเก่าหลังจบการวิ่ง"); return; }
+  const r = (state.routes || []).find(x => x.id === ds.id); if (!r) return;
+  TRK.viewId = r.id; trkShowRoute(r);
+  document.querySelectorAll(".runlist li").forEach(li => li.classList.toggle("sel", li.querySelector("[data-id]").dataset.id === r.id));
+  const d = document.getElementById("trkDist"); if (d) { d.textContent = r.km.toFixed(2); trkTimeStatic(r); }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+function trkTimeStatic(r) { document.getElementById("trkTime").textContent = fmtDur(r.min * 60000); document.getElementById("trkPace").textContent = fmtPace(r.min / r.km); }
+ACT.trkDel = ds => { if (!confirm("ลบเส้นทางนี้? (ระยะในบันทึกประจำวันจะไม่ถูกลบ)")) return; state.routes = (state.routes || []).filter(r => r.id !== ds.id); if (TRK.viewId === ds.id) TRK.viewId = null; save(); render(); };
+ACT.trkDraftSave = () => {
+  const d = trkResumeDraft(); if (!d) return;
+  if (trkSaveRun(d.pts, d.dist, d.accMs, d.date)) { try { localStorage.removeItem(TRK_DRAFT); } catch (e) {} state.tab = "log"; render(); }
+  else { alert("ข้อมูลน้อยเกินไปที่จะบันทึก"); ACT.trkDraftDiscard(); }
+};
+ACT.trkDraftDiscard = () => { try { localStorage.removeItem(TRK_DRAFT); } catch (e) {} render(); };
+
 // ---------- เข้าสู่ระบบ ----------
 // ใส่ Google OAuth Client ID ของคุณที่นี่ (สร้างได้ที่ Google Cloud Console > APIs & Services > Credentials)
 // และต้องเพิ่มโดเมนที่ใช้เปิดแอปในช่อง "Authorized JavaScript origins" ด้วย
@@ -1574,6 +1933,7 @@ window.cloudOnUser = info => {
       profile: { ...DEFAULT_PROFILE, ...info.data.profile },
       days: info.data.days || {},
       plan: info.data.plan || null,
+      routes: info.data.routes || state.routes || [],
       lang: info.data.lang || state.lang };
   }
   state.user = info.user;
