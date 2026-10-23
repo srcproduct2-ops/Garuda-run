@@ -866,7 +866,7 @@ const EN = {
   "บัญชีแบบ User ID ไม่มีอีเมลสำหรับกู้รหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ":"User ID accounts have no email for password recovery. Please contact the admin",
   "โปรไฟล์มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก":"Your profile has unsaved changes","ต้องการบันทึกโปรไฟล์ก่อนหรือไม่?":"Save your profile first?","ไม่บันทึก":"Don't save","ยกเลิก":"Cancel","ล้างข้อมูล":"Clear",
 };
-Object.entries({"รูปลายน้ำผลวิ่ง":"Run photo watermark","อัปโหลดรูป แล้วใส่ระยะทาง เพซ เวลา แคลอรี่ พร้อมโลโก้ Garuda Runner":"Upload a photo and add distance, pace, time and calories with the Garuda Runner logo","เลือกรูป":"Choose photo","ใช้ข้อมูลวิ่งล่าสุด":"Use latest run","เวลา (ชม:นาที:วินาที)":"Time (h:mm:ss)","แคลอรี่ (kcal) ":"Calories (kcal) ","เพซ (คำนวณอัตโนมัติ) ":"Pace (auto) ","วันที่ (ไม่บังคับ)":"Date (optional)","รูปแบบ":"Layout","ข้อมูลเรียงด้านซ้าย":"Stats on the left","แถบข้อมูลด้านล่าง":"Bottom stats bar","ขนาดข้อความ":"Text size","บันทึกรูป":"Save image","แชร์รูป":"Share image","ยังไม่ได้เลือกรูป กดเลือกรูปเพื่อเริ่มสร้างลายน้ำ":"No photo yet. Choose a photo to start","ไม่มีข้อมูลการวิ่งให้ดึง":"No run data to use","เปิดรูปไม่สำเร็จ ลองรูปอื่น":"Could not open this photo. Try another"}).forEach(([k, v]) => { if (!(k in EN)) EN[k] = v; });
+Object.entries({"รูปลายน้ำผลวิ่ง":"Run photo watermark","อัปโหลดรูป แล้วใส่ระยะทาง เพซ เวลา แคลอรี่ พร้อมโลโก้ Garuda Runner":"Upload a photo and add distance, pace, time and calories with the Garuda Runner logo","เลือกรูป":"Choose photo","ใช้ข้อมูลวิ่งล่าสุด":"Use latest run","เวลา (ชม:นาที:วินาที)":"Time (h:mm:ss)","แคลอรี่ (kcal) ":"Calories (kcal) ","เพซ (คำนวณอัตโนมัติ) ":"Pace (auto) ","วันที่ (ไม่บังคับ)":"Date (optional)","รูปแบบ":"Layout","ข้อมูลเรียงด้านซ้าย":"Stats on the left","แถบข้อมูลด้านล่าง":"Bottom stats bar","ขนาดข้อความ":"Text size","บันทึกรูป":"Save image","แชร์รูป":"Share image","ยังไม่ได้เลือกรูป กดเลือกรูปเพื่อเริ่มสร้างลายน้ำ":"No photo yet. Choose a photo to start","ไม่มีข้อมูลการวิ่งให้ดึง":"No run data to use","เปิดรูปไม่สำเร็จ ลองรูปอื่น":"Could not open this photo. Try another","กรอบกลางรูป":"Centered frame","ป้ายแคปซูล":"Capsule badges","โปสเตอร์ตัวใหญ่":"Big poster"}).forEach(([k, v]) => { if (!(k in EN)) EN[k] = v; });
 const EN_KEYS = Object.keys(EN).sort((a, b) => b.length - a.length);
 const dn = i => state.lang === "en" ? DAY_EN[i] : DAY_NAMES[i];
 const dns = i => state.lang === "en" ? DAY_EN_S[i] : DAY_NAMES[i].slice(0, 2);
@@ -1460,8 +1460,29 @@ const ACT = {};
 ACT.exportIcs = exportIcsFn;
 
 // ---------- รูปลายน้ำผลวิ่ง (อัปโหลดรูป + ระยะทาง เพซ เวลา แคลอรี่ + โลโก้ Garuda Runner) ----------
-const WM = { img: null, v: { km: "", time: "", kcal: "", date: "", style: "left", size: 100 } };
-const WM_FONT = '"Noto Sans Thai","Sarabun",system-ui,-apple-system,Tahoma,sans-serif';
+const WM = { img: null, v: { km: "", time: "", kcal: "", date: "", style: "left", size: 100, font: "std", splits: "" } };
+const WM_FB = '"Noto Sans Thai","Sarabun",system-ui,-apple-system,Tahoma,sans-serif';
+const WM_FONTS = {
+  std:   { n: "มาตรฐาน",        stack: WM_FB },
+  kanit: { n: "Kanit (สปอร์ต)",  stack: '"Kanit",' + WM_FB, g: "Kanit:wght@600;700;800;900" },
+  prompt:{ n: "Prompt (ทันสมัย)", stack: '"Prompt",' + WM_FB, g: "Prompt:wght@600;700;800;900" },
+  mitr:  { n: "Mitr (มน หนา)",   stack: '"Mitr",' + WM_FB, g: "Mitr:wght@500;600;700" },
+  chakra:{ n: "Chakra Petch (เทคโน)", stack: '"Chakra Petch",' + WM_FB, g: "Chakra+Petch:wght@600;700" },
+  mono:  { n: "Mono (ตัวเลขดิจิทัล)", stack: 'ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",' + WM_FB }
+};
+let WM_FONT = WM_FONTS.std.stack;
+function wmSetFont(key) {
+  const f = WM_FONTS[key] || WM_FONTS.std;
+  WM_FONT = f.stack;
+  if (!f.g || f.loaded) return;
+  f.loaded = true;
+  try {
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=" + f.g + "&display=swap";
+    l.onload = () => { const fam = f.stack.split(",")[0]; Promise.all([600, 700, 800, 900].map(wt => document.fonts.load(wt + " 40px " + fam, "0123456789กขคงจ"))).then(() => wmDraw()).catch(() => {}); };
+    l.onerror = () => { f.loaded = false; };
+    document.head.appendChild(l);
+  } catch (e) { f.loaded = false; }
+}
 const WM_LBL = {
   th: { dist: "ระยะทาง", pace: "เพซ", time: "เวลา", kcal: "แคลอรี่", km: "กม." },
   en: { dist: "Distance", pace: "Pace", time: "Time", kcal: "Calories", km: "km" }
@@ -1477,8 +1498,13 @@ function wmCardHTML() {
       <div class="field"><label>เพซ (คำนวณอัตโนมัติ) </label><input id="wmPace" value="–" disabled></div>
       <div class="field"><label for="wmKcal">แคลอรี่ (kcal) </label><input id="wmKcal" type="number" min="0" inputmode="numeric" value="${esc(v.kcal)}"></div>
       <div class="field"><label for="wmDate">วันที่ (ไม่บังคับ)</label><input id="wmDate" type="date" value="${esc(v.date)}"></div>
-      <div class="field"><label for="wmStyle">รูปแบบ</label><select id="wmStyle"><option value="left"${v.style === "left" ? " selected" : ""}>ข้อมูลเรียงด้านซ้าย</option><option value="bottom"${v.style === "bottom" ? " selected" : ""}>แถบข้อมูลด้านล่าง</option></select></div>
+      <div class="field"><label for="wmStyle">รูปแบบ</label><select id="wmStyle"><option value="left"${v.style === "left" ? " selected" : ""}>ข้อมูลเรียงด้านซ้าย</option><option value="bottom"${v.style === "bottom" ? " selected" : ""}>แถบข้อมูลด้านล่าง</option><option value="card"${v.style === "card" ? " selected" : ""}>กรอบกลางรูป</option><option value="pill"${v.style === "pill" ? " selected" : ""}>ป้ายแคปซูล</option><option value="poster"${v.style === "poster" ? " selected" : ""}>โปสเตอร์ตัวใหญ่</option><option value="splitH"${v.style === "splitH" ? " selected" : ""}>กราฟแท่งเพซรายกม. (แนวนอน)</option><option value="splitV"${v.style === "splitV" ? " selected" : ""}>กราฟแท่งเพซรายกม. (แนวตั้ง)</option><option value="gauge"${v.style === "gauge" ? " selected" : ""}>แท่งสรุปข้อมูลวิ่ง</option></select></div>
     </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label for="wmFont">แบบตัวอักษร</label><select id="wmFont">${Object.keys(WM_FONTS).map(k => `<option value="${k}"${v.font === k ? " selected" : ""}>${WM_FONTS[k].n}</option>`).join("")}</select></div>
+      <div class="field"><label for="wmSplits">เพซรายกม. (ไม่บังคับ)</label><input id="wmSplits" type="text" placeholder="7:30, 7:22, 7:15, 7:05" value="${esc(v.splits)}"></div>
+    </div>
+    <p id="wmHint" class="muted" style="margin:8px 0 0" hidden></p>
     <div class="field" style="margin-top:10px"><label for="wmSize">ขนาดข้อความ</label><input id="wmSize" type="range" min="70" max="150" step="5" value="${esc(v.size)}"></div>
     <p id="wmEmpty" class="muted" style="margin:12px 0 0">ยังไม่ได้เลือกรูป กดเลือกรูปเพื่อเริ่มสร้างลายน้ำ</p>
     <canvas id="wmCv" hidden style="width:100%;height:auto;border-radius:16px;margin-top:12px;display:block"></canvas>
@@ -1505,12 +1531,14 @@ function wmFmtPace(secPerKm) {
 }
 function wmRead() {
   const g = id => { const e = document.getElementById(id); return e ? e.value : ""; };
-  WM.v = { km: g("wmKm"), time: g("wmTime"), kcal: g("wmKcal"), date: g("wmDate"), style: g("wmStyle") || "left", size: Number(g("wmSize")) || 100 };
+  WM.v = { km: g("wmKm"), time: g("wmTime"), kcal: g("wmKcal"), date: g("wmDate"), style: g("wmStyle") || "left", size: Number(g("wmSize")) || 100, font: g("wmFont") || "std", splits: g("wmSplits") };
+  wmSetFont(WM.v.font);
   const km = Number(WM.v.km), sec = wmParseTime(WM.v.time), p = document.getElementById("wmPace");
   if (p) p.value = km > 0 && sec > 0 ? wmFmtPace(sec / km) + " /" + (state.lang === "en" ? "km" : "กม.") : "–";
   wmDraw();
 }
 function wmMount() {
+  wmSetFont(WM.v.font);
   const km = Number(WM.v.km), sec = wmParseTime(WM.v.time), p = document.getElementById("wmPace");
   if (p) p.value = km > 0 && sec > 0 ? wmFmtPace(sec / km) + " /" + (state.lang === "en" ? "km" : "กม.") : "–";
   wmDraw();
@@ -1530,7 +1558,23 @@ function wmGarudaPath(c, x, y, w, color) {   // วาดโลโก้คร�
   c.beginPath(); c.arc(62, 26, 7, 0, Math.PI * 2); c.fill();
   c.restore();
 }
+function wmParseSplits(t) {
+  return String(t || "").split(/[\s,;|]+/).map(x => x.trim()).filter(Boolean).slice(0, 40).map(x => {
+    const p = x.replace(",", ".").split(":").map(Number);
+    if (p.some(n => !isFinite(n) || n <= 0)) return 0;
+    return p.length === 1 ? p[0] * 60 : p[0] * 60 + p[1];
+  }).filter(n => n > 0);
+}
+function wmHint() {
+  const e = document.getElementById("wmHint"); if (!e) return;
+  const st = WM.v.style, n = wmParseSplits(WM.v.splits).length;
+  let m = "";
+  if ((st === "splitH" || st === "splitV") && !n) m = "กรอกเพซรายกม. คั่นด้วยจุลภาค เช่น 7:30, 7:22, 7:15 เพื่อแสดงกราฟแท่ง";
+  else if (st === "gauge") m = "แท่งเทียบกับเกณฑ์อ้างอิง: ระยะ 21.1 กม., เวลา 2 ชม., แคลอรี่ 1,000 kcal, เพซ 10:00 ถึง 4:00 /กม.";
+  e.textContent = tr(m); e.hidden = !m;
+}
 function wmDraw() {
+  wmHint();
   const cv = document.getElementById("wmCv");
   if (!cv) return;
   const empty = document.getElementById("wmEmpty"), btns = document.getElementById("wmBtns");
@@ -1565,7 +1609,179 @@ function wmDraw() {
     c.fillStyle = lime; c.fillText("Runner", x0 + iw + 12 * u + g, baseY);
     noShadow();
   };
-  if (v.style === "bottom") {
+  const rr = (x, y, ww, hh, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + ww, y, x + ww, y + hh, r); c.arcTo(x + ww, y + hh, x, y + hh, r); c.arcTo(x, y + hh, x, y, r); c.arcTo(x, y, x + ww, y, r); c.closePath(); };
+  const hero = items[0], rest = items.slice(1);
+  const txt = (t, x, y, font, color, align) => { c.font = font; c.fillStyle = color; c.textAlign = align || "left"; c.textBaseline = "alphabetic"; c.fillText(t, x, y); };
+  const splits = wmParseSplits(v.splits);
+  const bars = (x, y, bw, bh, n, vals) => {};
+  if (v.style === "splitH") {
+    const gl = c.createLinearGradient(0, 0, w, 0);
+    gl.addColorStop(0, "rgba(0,0,0,.55)"); gl.addColorStop(1, "rgba(0,0,0,.2)");
+    c.fillStyle = gl; c.fillRect(0, 0, w, h);
+    const gb = c.createLinearGradient(0, h - 300 * u, 0, h); gb.addColorStop(0, "rgba(0,0,0,0)"); gb.addColorStop(1, "rgba(0,0,0,.5)");
+    c.fillStyle = gb; c.fillRect(0, h - 300 * u, w, 300 * u);
+    const x = 56 * u, itemH = 118 * u, brandY = h - 56 * u, y0 = brandY - 80 * u - items.length * itemH;
+    if (dateTxt) { shadow(); txt(dateTxt, x, y0 - 8 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)"); noShadow(); }
+    items.forEach((it, i) => {
+      const by = y0 + i * itemH; shadow();
+      txt(it.l, x, by + 26 * u, `600 ${26 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)");
+      c.font = `800 ${66 * u}px ${WM_FONT}`; const vw = c.measureText(it.v).width;
+      txt(it.v, x, by + 92 * u, `800 ${66 * u}px ${WM_FONT}`, white);
+      if (it.u) txt(" " + it.u, x + vw, by + 92 * u, `700 ${30 * u}px ${WM_FONT}`, white);
+      noShadow();
+    });
+    brand(x, brandY, "left");
+    if (splits.length) {
+      const q = Math.min(u, w / 1080 * 1.05), n = splits.length, pw = 470 * q, px = w - 40 * q - pw;
+      const rowH = Math.min(46 * q, 560 * q / n), gap = rowH * 0.22, ph = 90 * q + n * rowH, py = brandY - 70 * q - ph;
+      c.fillStyle = "rgba(0,0,0,.42)"; rr(px, py, pw, ph, 28 * q); c.fill();
+      txt(tr(state.lang === "en" ? "Pace per km" : "เพซรายกม."), px + 28 * q, py + 52 * q, `700 ${26 * q}px ${WM_FONT}`, "rgba(255,255,255,.85)");
+      const mn = Math.min(...splits), mx = Math.max(...splits), lblW = 44 * q, valW = 92 * q, bx = px + 28 * q + lblW, bmax = pw - 56 * q - lblW - valW - 8 * q;
+      splits.forEach((sp, i) => {
+        const fr = mx === mn ? 1 : 1 - (sp - mn) / (mx - mn) * 0.6, ry = py + 76 * q + i * rowH, bh = rowH - gap;
+        txt(String(i + 1), px + 28 * q, ry + bh * 0.78, `700 ${Math.min(24 * q, bh * 0.8)}px ${WM_FONT}`, "rgba(255,255,255,.8)");
+        c.fillStyle = sp === mn ? lime : "rgba(255,255,255,.85)"; rr(bx, ry, Math.max(bmax * fr, bh), bh, bh / 2); c.fill();
+        txt(wmFmtPace(sp), px + pw - 28 * q, ry + bh * 0.78, `700 ${Math.min(24 * q, bh * 0.8)}px ${WM_FONT}`, white, "right");
+      });
+    }
+  } else if (v.style === "splitV") {
+    const gr = c.createLinearGradient(0, h - 760 * u, 0, h); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.78)");
+    c.fillStyle = gr; c.fillRect(0, h - 760 * u, w, 760 * u);
+    const pad = 48 * u, n = Math.max(items.length, 1), cw = (w - pad * 2) / n, rowY = h - 160 * u, base = rowY - 110 * u;
+    if (splits.length) {
+      const m = splits.length, aw = w - pad * 2, slot = aw / m, bw = Math.min(slot * 0.72, 70 * u), mn = Math.min(...splits), mx = Math.max(...splits), maxH = 280 * u;
+      shadow();
+      splits.forEach((sp, i) => {
+        const fr = mx === mn ? 1 : 1 - (sp - mn) / (mx - mn) * 0.6, bh = Math.max(maxH * fr, 12 * u), x = pad + slot * i + (slot - bw) / 2;
+        c.fillStyle = sp === mn ? lime : "rgba(255,255,255,.82)"; rr(x, base - bh, bw, bh, Math.min(bw / 2, 12 * u)); c.fill();
+        if (m <= 14) txt(String(i + 1), x + bw / 2, base + 28 * u, `700 ${22 * u}px ${WM_FONT}`, "rgba(255,255,255,.8)", "center");
+      });
+      noShadow();
+      c.fillStyle = "rgba(255,255,255,.4)"; c.fillRect(pad, base + 1 * u, aw, 2 * u);
+    } else if (dateTxt) { shadow(); txt(dateTxt, w / 2, rowY - 110 * u, `600 ${30 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)", "center"); noShadow(); }
+    if (splits.length && dateTxt) { shadow(); txt(dateTxt, pad, base - 300 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)"); noShadow(); }
+    items.forEach((it, i) => {
+      const cx = pad + cw * i + cw / 2; shadow();
+      c.font = `800 ${58 * u}px ${WM_FONT}`; const vw = c.measureText(it.v).width;
+      c.font = `700 ${26 * u}px ${WM_FONT}`; const uw = it.u ? c.measureText(" " + it.u).width : 0;
+      const sx = cx - (vw + uw) / 2;
+      txt(it.v, sx, rowY, `800 ${58 * u}px ${WM_FONT}`, white);
+      if (it.u) txt(" " + it.u, sx + vw, rowY, `700 ${26 * u}px ${WM_FONT}`, white);
+      txt(it.l, cx, rowY + 40 * u, `600 ${26 * u}px ${WM_FONT}`, "rgba(255,255,255,.8)", "center");
+      noShadow();
+    });
+    brand(w / 2, h - 50 * u, "center");
+  } else if (v.style === "gauge") {
+    const g0 = h * 0.4, gb = c.createLinearGradient(0, g0, 0, h); gb.addColorStop(0, "rgba(0,0,0,0)"); gb.addColorStop(1, "rgba(0,0,0,.78)");
+    c.fillStyle = gb; c.fillRect(0, g0, w, h - g0);
+    const clamp = z => Math.max(0.04, Math.min(1, z));
+    const g = [];
+    if (km > 0) g.push({ it: items.find(i => i.l === L.dist), f: clamp(km / 21.1) });
+    if (km > 0 && sec > 0) g.push({ it: items.find(i => i.l === L.pace), f: clamp((600 - sec / km) / 360) });
+    if (sec > 0) g.push({ it: items.find(i => i.l === L.time), f: clamp(sec / 7200) });
+    if (kcal > 0) g.push({ it: items.find(i => i.l === L.kcal), f: clamp(kcal / 1000) });
+    const x = 56 * u, gw = Math.min(w - 112 * u, 800 * u), rh = 118 * u, brandY = h - 56 * u, y0 = brandY - 90 * u - g.length * rh;
+    if (dateTxt) { shadow(); txt(dateTxt, x, y0 - 14 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)"); noShadow(); }
+    g.forEach((r, i) => {
+      const by = y0 + i * rh; shadow();
+      txt(r.it.l, x, by + 30 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)");
+      c.font = `800 ${50 * u}px ${WM_FONT}`; const vw = c.measureText(r.it.v).width;
+      c.font = `700 ${26 * u}px ${WM_FONT}`; const uw = r.it.u ? c.measureText(" " + r.it.u).width : 0;
+      const vx = x + gw - vw - uw;
+      txt(r.it.v, vx, by + 34 * u, `800 ${50 * u}px ${WM_FONT}`, white);
+      if (r.it.u) txt(" " + r.it.u, vx + vw, by + 34 * u, `700 ${26 * u}px ${WM_FONT}`, white);
+      noShadow();
+      c.fillStyle = "rgba(255,255,255,.25)"; rr(x, by + 52 * u, gw, 20 * u, 10 * u); c.fill();
+      c.fillStyle = lime; rr(x, by + 52 * u, Math.max(gw * r.f, 20 * u), 20 * u, 10 * u); c.fill();
+    });
+    brand(x, brandY, "left");
+  } else if (v.style === "card") {
+    c.fillStyle = "rgba(0,0,0,.18)"; c.fillRect(0, 0, w, h);
+    const bw = 720 * u, bh = (rest.length ? 520 : 390) * u, bx = (w - bw) / 2, by = Math.max(40 * u, h * 0.40 - bh / 2), cx = w / 2;
+    c.fillStyle = "rgba(0,0,0,.38)"; rr(bx, by, bw, bh, 36 * u); c.fill();
+    c.lineWidth = 3 * u; c.strokeStyle = "rgba(255,255,255,.85)"; rr(bx, by, bw, bh, 36 * u); c.stroke();
+    brand(cx, by + 96 * u, "center");
+    shadow();
+    if (dateTxt) txt(dateTxt, cx, by + 146 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)", "center");
+    if (hero) {
+      txt(hero.l, cx, by + 204 * u, `600 ${28 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)", "center");
+      c.font = `800 ${140 * u}px ${WM_FONT}`; const vw = c.measureText(hero.v).width;
+      c.font = `700 ${40 * u}px ${WM_FONT}`; const uw = hero.u ? c.measureText(" " + hero.u).width : 0;
+      const sx = cx - (vw + uw) / 2;
+      txt(hero.v, sx, by + 330 * u, `800 ${140 * u}px ${WM_FONT}`, white, "left");
+      if (hero.u) txt(" " + hero.u, sx + vw, by + 330 * u, `700 ${40 * u}px ${WM_FONT}`, white, "left");
+    }
+    const colW = (bw - 80 * u) / Math.max(rest.length, 1);
+    rest.forEach((it, i) => {
+      const x = bx + 40 * u + colW * i + colW / 2;
+      c.font = `800 ${52 * u}px ${WM_FONT}`; const vw = c.measureText(it.v).width;
+      c.font = `700 ${24 * u}px ${WM_FONT}`; const uw = it.u ? c.measureText(" " + it.u).width : 0;
+      const sx = x - (vw + uw) / 2;
+      txt(it.v, sx, by + 430 * u, `800 ${52 * u}px ${WM_FONT}`, white, "left");
+      if (it.u) txt(" " + it.u, sx + vw, by + 430 * u, `700 ${24 * u}px ${WM_FONT}`, white, "left");
+      txt(it.l, x, by + 470 * u, `600 ${24 * u}px ${WM_FONT}`, "rgba(255,255,255,.8)", "center");
+    });
+    noShadow();
+  } else if (v.style === "pill") {
+    const gr = c.createLinearGradient(0, h - 480 * u, 0, h);
+    gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.6)");
+    c.fillStyle = gr; c.fillRect(0, h - 480 * u, w, 480 * u);
+    const pills = [];
+    if (dateTxt) pills.push({ l: "", v: dateTxt, u: "", hi: false });
+    items.forEach((it, i) => pills.push({ l: it.l, v: it.v, u: it.u, hi: i === 0 }));
+    const ph = 84 * u, gap = 16 * u, padX = 30 * u, maxW = w - 96 * u;
+    pills.forEach(pl => {
+      c.font = `600 ${24 * u}px ${WM_FONT}`; pl.lw = pl.l ? c.measureText(pl.l).width + 14 * u : 0;
+      c.font = `800 ${38 * u}px ${WM_FONT}`; pl.vw = c.measureText(pl.v).width;
+      c.font = `700 ${24 * u}px ${WM_FONT}`; pl.uw = pl.u ? c.measureText(" " + pl.u).width : 0;
+      pl.w = padX * 2 + pl.lw + pl.vw + pl.uw;
+    });
+    const rows = []; let cur = [], cw = 0;
+    pills.forEach(pl => { if (cur.length && cw + gap + pl.w > maxW) { rows.push(cur); cur = []; cw = 0; } cur.push(pl); cw += (cur.length > 1 ? gap : 0) + pl.w; });
+    if (cur.length) rows.push(cur);
+    const bottom = h - 150 * u; let y = bottom - rows.length * ph - (rows.length - 1) * gap;
+    rows.forEach(row => {
+      let x = 48 * u;
+      row.forEach(pl => {
+        c.fillStyle = pl.hi ? lime : "rgba(0,0,0,.5)"; rr(x, y, pl.w, ph, ph / 2); c.fill();
+        if (!pl.hi) { c.lineWidth = 2 * u; c.strokeStyle = "rgba(255,255,255,.4)"; rr(x, y, pl.w, ph, ph / 2); c.stroke(); }
+        const dark = "#12200f", ty = y + ph / 2 + 13 * u; let tx = x + padX;
+        if (pl.l) { txt(pl.l, tx, ty - 1 * u, `600 ${24 * u}px ${WM_FONT}`, pl.hi ? "rgba(18,32,15,.75)" : "rgba(255,255,255,.75)"); tx += pl.lw; }
+        txt(pl.v, tx, ty, `800 ${38 * u}px ${WM_FONT}`, pl.hi ? dark : white); tx += pl.vw;
+        if (pl.u) txt(" " + pl.u, tx, ty, `700 ${24 * u}px ${WM_FONT}`, pl.hi ? dark : white);
+        x += pl.w + gap;
+      });
+      y += ph + gap;
+    });
+    brand(48 * u, h - 56 * u, "left");
+  } else if (v.style === "poster") {
+    const gt = c.createLinearGradient(0, 0, 0, 260 * u);
+    gt.addColorStop(0, "rgba(0,0,0,.5)"); gt.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = gt; c.fillRect(0, 0, w, 260 * u);
+    const g0 = h * 0.38, gb = c.createLinearGradient(0, g0, 0, h);
+    gb.addColorStop(0, "rgba(0,0,0,0)"); gb.addColorStop(1, "rgba(0,0,0,.78)");
+    c.fillStyle = gb; c.fillRect(0, g0, w, h - g0);
+    brand(56 * u, 100 * u, "left");
+    const x = 56 * u, rowY = h - 110 * u, heroY = rowY - 125 * u;
+    shadow();
+    if (dateTxt) txt(dateTxt, w - 56 * u, 100 * u, `600 ${30 * u}px ${WM_FONT}`, "rgba(255,255,255,.9)", "right");
+    if (hero) {
+      txt(hero.l, x, heroY - 210 * u, `700 ${32 * u}px ${WM_FONT}`, "rgba(255,255,255,.85)");
+      c.font = `900 ${250 * u}px ${WM_FONT}`; const vw = c.measureText(hero.v).width;
+      txt(hero.v, x, heroY, `900 ${250 * u}px ${WM_FONT}`, lime);
+      if (hero.u) txt(" " + hero.u, x + vw, heroY, `800 ${70 * u}px ${WM_FONT}`, lime);
+    }
+    let rx = x;
+    rest.forEach(it => {
+      c.font = `800 ${56 * u}px ${WM_FONT}`; const vw = c.measureText(it.v).width;
+      c.font = `700 ${28 * u}px ${WM_FONT}`; const uw = it.u ? c.measureText(" " + it.u).width : 0;
+      txt(it.v, rx, rowY, `800 ${56 * u}px ${WM_FONT}`, white);
+      if (it.u) txt(" " + it.u, rx + vw, rowY, `700 ${28 * u}px ${WM_FONT}`, white);
+      txt(it.l, rx, rowY + 40 * u, `600 ${26 * u}px ${WM_FONT}`, "rgba(255,255,255,.75)");
+      rx += Math.max(vw + uw, 120 * u) + 56 * u;
+    });
+    noShadow();
+  } else if (v.style === "bottom") {
     const gr = c.createLinearGradient(0, h - 520 * u, 0, h);
     gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.72)");
     c.fillStyle = gr; c.fillRect(0, h - 520 * u, w, 520 * u);
